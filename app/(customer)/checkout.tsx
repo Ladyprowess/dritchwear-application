@@ -80,6 +80,11 @@ export default function CheckoutScreen() {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   };
 
+  // Check if delivery address is filled
+  const hasDeliveryAddress = () => {
+    return deliveryAddress.trim().length > 0;
+  };
+
   const handleOrder = async (paymentMethod: 'wallet' | 'card' | 'paypal') => {
     if (!deliveryAddress.trim()) {
       Alert.alert('Delivery Address Required', 'Please enter your delivery address');
@@ -343,7 +348,16 @@ export default function CheckoutScreen() {
   const subtotalNGN = getSubtotalInNGN();
   const discountNGN = appliedPromo ? subtotalNGN * appliedPromo.discount : 0;
   const discountedSubtotalNGN = subtotalNGN - discountNGN;
-  const orderTotals = calculateOrderTotal(discountedSubtotalNGN, deliveryAddress, 'NGN');
+  
+  // Only calculate delivery fee if address is provided
+  const orderTotals = hasDeliveryAddress() 
+    ? calculateOrderTotal(discountedSubtotalNGN, deliveryAddress, 'NGN')
+    : {
+        subtotal: discountedSubtotalNGN,
+        serviceFee: discountedSubtotalNGN * 0.02,
+        deliveryFee: 0,
+        total: discountedSubtotalNGN + (discountedSubtotalNGN * 0.02)
+      };
   
   // Convert to user currency for display
   const displayTotals = {
@@ -450,7 +464,10 @@ export default function CheckoutScreen() {
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Delivery Fee</Text>
                 <Text style={styles.totalValue}>
-                  {formatCurrency(displayTotals.deliveryFee, userCurrency)}
+                  {hasDeliveryAddress() 
+                    ? formatCurrency(displayTotals.deliveryFee, userCurrency)
+                    : '-'
+                  }
                 </Text>
               </View>
               

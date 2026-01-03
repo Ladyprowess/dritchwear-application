@@ -79,7 +79,7 @@ export default function AdminOrdersScreen() {
         .order('created_at', { ascending: false });
 
       // Fetch custom requests with invoices
-      const { data: customData } = await supabase
+      const { data: customData, error: customError } = await supabase
   .from('custom_requests')
   .select(`
     id,
@@ -91,11 +91,14 @@ export default function AdminOrdersScreen() {
     status,
     created_at,
     currency,
-    logo_url,
-    profiles!inner(full_name, email, wallet_balance, preferred_currency),
+    profiles!inner(full_name, email, preferred_currency),
     invoices(*)
   `)
-        .order('created_at', { ascending: false });
+  .order('created_at', { ascending: false });
+
+console.log('🧪 CUSTOM REQUEST DATA:', customData);
+console.log('🧪 CUSTOM REQUEST ERROR:', customError);
+
 
       if (ordersData) setOrders(ordersData);
       if (customData) setCustomRequests(customData);

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Sparkles, Package, DollarSign, FileText, Building, Calendar, MapPin, Upload, Palette, Target } from 'lucide-react-native';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Crypto from 'expo-crypto';
 
 // Budget ranges in different currencies
@@ -271,57 +271,115 @@ if (!publicUrlData?.publicUrl) {
     return bytes;
   };
 
-  const handleSubmit = async () => {
-    if (!formData.title.trim() || !formData.description.trim() || !formData.budgetRange || !formData.deliveryAddress.trim()) {
-      Alert.alert('Missing Information', 'Please fill in all required fields');
-      return;
+  const getSupabaseErrorMessage = (error: any) => {
+    if (!error) return 'Something went wrong. Please try again.';
+
+    const message =
+      error?.message ||
+      error?.error_description ||
+      String(error);
+
+    if (message.includes('row-level security')) {
+      return 'Permission denied. Please log in again or contact support.';
+    }
+    if (message.includes('violates foreign key constraint')) {
+      return 'Your account profile is not ready yet. Please log out and log in again.';
+    }
+    if (message.includes('duplicate key value')) {
+      return 'This request already exists.';
+    }
+    if (message.includes('invalid input syntax for type uuid')) {
+      return 'Your login session is invalid. Please log in again.';
+    }
+    if (message.toLowerCase().includes('fetch')) {
+      return 'Network error. Please check your internet connection.';
     }
 
-    if (formData.deadline) {
-      const deadlineDate = new Date(formData.deadline);
-      const today = new Date();
-      if (deadlineDate <= today) {
-        Alert.alert('Invalid Deadline', 'Deadline must be in the future');
+    return message;
+  };
+
+
+  const handleSubmit = async () => {
+    try {
+      if (
+        !formData.title.trim() ||
+        !formData.description.trim() ||
+        !formData.budgetRange ||
+        !formData.deliveryAddress.trim()
+      ) {
+        Alert.alert('Missing Information', 'Please fill in all required fields.');
         return;
       }
-    }
 
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to submit a custom order');
-      return;
-    }
+      const qty = Number.parseInt(formData.quantity, 10);
+      if (Number.isNaN(qty) || qty <= 0) {
+        Alert.alert('Invalid Quantity', 'Please enter a valid quantity.');
+        return;
+      }
 
-    setLoading(true);
+      let deadlineISO: string | null = null;
+      if (formData.deadline.trim()) {
+        const d = new Date(formData.deadline);
+        if (Number.isNaN(d.getTime())) {
+          Alert.alert('Invalid Deadline', 'Use format YYYY-MM-DD');
+          return;
+        }
+        if (d <= new Date()) {
+          Alert.alert('Invalid Deadline', 'Deadline must be in the future.');
+          return;
+        }
+        deadlineISO = d.toISOString();
+      }
 
-    try {
+      if (!user?.id) {
+        Alert.alert('Error', 'You must be logged in.');
+        return;
+      }
+
+      setLoading(true);
+
+      const payload = {
+        user_id: user.id,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        quantity: qty,
+        budget_range: formData.budgetRange,
+        status: 'pending',
+        currency: userCurrency,
+        invoice_sent: false,
+
+        business_name: formData.businessName.trim() || null,
+        event_name: formData.eventName.trim() || null,
+        logo_url: formData.logoUrl || null,
+        brand_colors: formData.brandColors
+          ? formData.brandColors.split(',').map(c => c.trim()).filter(Boolean)
+          : null,
+        logo_placement: formData.logoPlacement || null,
+        delivery_address: formData.deliveryAddress.trim(),
+        deadline: deadlineISO,
+        additional_notes: formData.additionalNotes.trim() || null,
+      };
+
+      console.log('📦 Submitting custom request:', payload);
+
       const { error } = await supabase
         .from('custom_requests')
-        .insert({
-          user_id: user.id,
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          quantity: parseInt(formData.quantity) || 1,
-          budget_range: formData.budgetRange,
-          currency: userCurrency,
-          business_name: formData.businessName.trim() || null,
-          event_name: formData.eventName.trim() || null,
-          logo_url: formData.logoUrl || null,
-          brand_colors: formData.brandColors ? formData.brandColors.split(',').map(c => c.trim()).filter(c => c) : null,
-          logo_placement: formData.logoPlacement,
-          delivery_address: formData.deliveryAddress.trim(),
-          deadline: formData.deadline ? new Date(formData.deadline).toISOString().split('T')[0] : null,
-          additional_notes: formData.additionalNotes.trim() || null,
-        });
+        .insert(payload);
 
-      if (error) throw error;
+      if (error) {
+        console.log('❌ Supabase error:', error);
+        Alert.alert('Submit Failed', getSupabaseErrorMessage(error));
+        return;
+      }
 
       Alert.alert(
         'Request Submitted',
-        'Your custom order request has been submitted successfully. Our team will review it and get back to you within 24-48 hours.',
+        'Your custom order request has been submitted successfully.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit custom order request. Please try again.');
+    } catch (err: any) {
+      console.log('💥 Crash:', err);
+      Alert.alert('Error', getSupabaseErrorMessage(err));
     } finally {
       setLoading(false);
     }

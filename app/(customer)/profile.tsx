@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut, updateProfile, updatePassword } from '@/lib/auth';
@@ -19,7 +19,8 @@ import {
   Eye,
   EyeOff,
   History,
-  Globe
+  Globe,
+  Trash2
 } from 'lucide-react-native';
 import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
@@ -132,6 +133,55 @@ export default function ProfileScreen() {
 
   const handleHelpSupport = () => {
     router.push('/(customer)/help-support');
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'To delete your account, please send us an email with your request. Are you sure you want to proceed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Email',
+          style: 'destructive',
+          onPress: async () => {
+            const email = 'dritchwear@gmail.com'; // Replace with your support email
+            const subject = 'Account Deletion Request';
+            const body = `Hi,
+  
+  I would like to request the deletion of my account.
+  
+  Email: ${profile.email}
+  Name: ${profile.full_name || 'Not provided'}
+  
+  Please confirm once my account has been deleted.
+  
+  Thank you.`;
+            
+            const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            try {
+              const canOpen = await Linking.canOpenURL(mailtoUrl);
+              if (canOpen) {
+                await Linking.openURL(mailtoUrl);
+              } else {
+                Alert.alert(
+                  'Email Client Not Available',
+                  `Please send an email to ${email} to request account deletion.`,
+                  [{ text: 'OK' }]
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                'Error',
+                `Unable to open email client. Please email ${email} to request account deletion.`,
+                [{ text: 'OK' }]
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCurrencyChange = (currencyCode: string) => {
@@ -413,6 +463,25 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       )}
+      {/* Delete Account Section */}
+{!editing && !changingPassword && (
+  <View style={styles.deleteAccountContainer}>
+    <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
+    <Pressable style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+      <View style={styles.deleteAccountContent}>
+        <View style={styles.deleteAccountLeft}>
+          <View style={styles.deleteIconContainer}>
+            <Trash2 size={20} color="#EF4444" />
+          </View>
+          <View>
+            <Text style={styles.deleteAccountTitle}>Delete Account</Text>
+            <Text style={styles.deleteAccountSubtitle}>Permanently delete your account</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  </View>
+)}
     </ScrollView>
   </KeyboardAvoidingView>
 </SafeAreaView>
@@ -597,6 +666,54 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     paddingBottom: 4,
+  },
+  deleteAccountContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  dangerSectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#EF4444',
+    marginBottom: 12,
+  },
+  deleteAccountButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  deleteAccountContent: {
+    padding: 16,
+  },
+  deleteAccountLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  deleteAccountTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  deleteAccountSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   passwordContainer: {
     flexDirection: 'row',
