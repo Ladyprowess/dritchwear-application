@@ -214,22 +214,14 @@ export default function CustomerOrdersScreen() {
       if (requestError) throw requestError;
 
       // Send notification to admin
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: null, // Broadcast to all admins
-          title: 'Invoice Accepted',
-          message: `Customer has accepted invoice for "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)}`,
-          type: 'custom'
-        });
-
-      if (notificationError) throw notificationError;
-
-      Alert.alert(
-        'Invoice Accepted',
-        'You have accepted the invoice. You can now proceed with payment.',
-        [{ text: 'OK' }]
-      );
+      const { error: notifyError } = await supabase.rpc('notify_admins', {
+        p_title: 'Invoice Accepted',
+        p_message: `Customer has accepted invoice for "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)}`,
+        p_type: 'custom',
+      });
+      
+      if (notifyError) console.warn('notify_admins failed:', notifyError);
+      
 
       // Refresh orders to show updated status
       await fetchOrders();
@@ -262,22 +254,16 @@ export default function CustomerOrdersScreen() {
       if (requestError) throw requestError;
 
       // Send notification to admin
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: null, // Broadcast to all admins
-          title: 'Invoice Rejected',
-          message: `Customer has rejected invoice for "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)}`,
-          type: 'custom'
-        });
-
-      if (notificationError) throw notificationError;
-
-      Alert.alert(
-        'Invoice Rejected',
-        'You have rejected the invoice. The custom order has been cancelled.',
-        [{ text: 'OK' }]
-      );
+      const { error: notifyError } = await supabase.rpc('notify_admins', {
+        p_title: 'Invoice Rejected',
+        p_message: `Customer has rejected invoice for "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)}`,
+        p_type: 'custom',
+      });
+      
+      if (notifyError) {
+        console.warn('notify_admins failed:', notifyError);
+      }
+      
 
       // Refresh orders to show updated status
       await fetchOrders();
@@ -518,16 +504,16 @@ export default function CustomerOrdersScreen() {
       if (requestError) throw requestError;
   
       // Send notification to admin
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: null, // Broadcast to all admins
-          title: 'Payment Received',
-          message: `Payment received for custom order "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)} via ${paymentMethod}`,
-          type: 'order'
-        });
-  
-      if (notificationError) throw notificationError;
+      const { error: notifyError } = await supabase.rpc('notify_admins', {
+        p_title: 'Payment Received',
+        p_message: `Payment received for custom order "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)} via ${paymentMethod}`,
+        p_type: 'order',
+      });
+      
+      if (notifyError) {
+        console.warn('notify_admins failed:', notifyError);
+      }
+      
   
       // CRITICAL: Only refresh profile for wallet payments
       if (paymentMethod === 'wallet') {
