@@ -25,19 +25,36 @@ interface Order {
 interface CustomRequest {
   id: string;
   user_id: string;
+
   title: string;
   description: string;
   quantity: number;
+
+  // keep this if your table stores it like this
   budget_range: string;
+
+  // ✅ extra fields your UI screenshot shows
+  business_name?: string;
+  logo_url?: string;
+  brand_colors?: string;
+  logo_placement?: string;
+  delivery_address?: string;
+  deadline?: string;
+
   status: string;
   created_at: string;
   currency?: string;
+
+  // if you’re joining invoices
+  invoices?: any[];
+
   profiles: {
     full_name: string;
     email: string;
     preferred_currency?: string;
   };
 }
+
 
 const statusFilters = ['All', 'Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Custom Orders'];
 
@@ -88,12 +105,18 @@ export default function AdminOrdersScreen() {
     description,
     quantity,
     budget_range,
+    business_name,
+    logo_url,
+    brand_colors,
+    logo_placement,
+    delivery_address,
+    deadline,
     status,
     created_at,
     currency,
     profiles!inner(full_name, email, preferred_currency),
     invoices(*)
-  `)
+  `)  
   .order('created_at', { ascending: false });
 
 console.log('🧪 CUSTOM REQUEST DATA:', customData);

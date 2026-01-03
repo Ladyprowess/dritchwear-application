@@ -174,9 +174,10 @@ export default function AdminNotificationsScreen() {
           setSelectedCustomers([]);
         }}]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send notification');
-    } finally {
+    } catch (error: any) {
+      console.error('❌ Send notification error:', error);
+      showSupabaseError(error, 'Failed to send notification');
+    } finally {    
       setSending(false);
     }
   };
