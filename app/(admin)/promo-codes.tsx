@@ -14,7 +14,8 @@ import {
   Percent,
   DollarSign,
   Calendar,
-  Users
+  Users,
+  UserCheck
 } from 'lucide-react-native';
 
 interface PromoCode {
@@ -26,6 +27,7 @@ interface PromoCode {
   max_usage: number | null;
   used_count: number;
   is_active: boolean;
+  first_time_only: boolean;
   expires_at: string | null;
   created_at: string;
 }
@@ -38,6 +40,7 @@ interface PromoCodeFormData {
   max_usage: string;
   expires_at: string;
   is_active: boolean;
+  first_time_only: boolean;
 }
 
 export default function PromoCodesScreen() {
@@ -54,6 +57,7 @@ export default function PromoCodesScreen() {
     max_usage: '',
     expires_at: '',
     is_active: true,
+    first_time_only: false,
   });
 
   const fetchPromoCodes = async () => {
@@ -81,6 +85,7 @@ export default function PromoCodesScreen() {
       max_usage: '',
       expires_at: '',
       is_active: true,
+      first_time_only: false,
     });
     setEditingPromo(null);
   };
@@ -100,6 +105,7 @@ export default function PromoCodesScreen() {
       max_usage: promo.max_usage?.toString() || '',
       expires_at: promo.expires_at ? new Date(promo.expires_at).toISOString().split('T')[0] : '',
       is_active: promo.is_active,
+      first_time_only: promo.first_time_only,
     });
     setShowModal(true);
   };
@@ -135,6 +141,7 @@ export default function PromoCodesScreen() {
       max_usage: formData.max_usage ? Number(formData.max_usage) : null,
       expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
       is_active: formData.is_active,
+      first_time_only: formData.first_time_only,
     };
 
     try {
@@ -229,7 +236,15 @@ export default function PromoCodesScreen() {
       <View style={styles.promoHeader}>
         <View style={styles.promoInfo}>
           <View style={styles.promoTitleRow}>
-            <Text style={styles.promoCode}>{promo.code}</Text>
+            <View style={styles.promoTitleContainer}>
+              <Text style={styles.promoCode}>{promo.code}</Text>
+              {promo.first_time_only && (
+                <View style={styles.firstTimeBadge}>
+                  <UserCheck size={12} color="#7C3AED" />
+                  <Text style={styles.firstTimeBadgeText}>First Time Only</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.promoActions}>
               <Pressable
                 style={[styles.actionButton, styles.editButton]}
@@ -439,6 +454,26 @@ export default function PromoCodesScreen() {
               </View>
             </View>
 
+            {/* First Time Users Only */}
+            <View style={styles.formGroup}>
+              <Pressable
+                style={styles.toggleContainer}
+                onPress={() => setFormData(prev => ({ ...prev, first_time_only: !prev.first_time_only }))}
+              >
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.formLabel}>First Time Users Only</Text>
+                  <Text style={styles.formHint}>
+                    {formData.first_time_only 
+                      ? 'Only users who have never placed an order can use this code' 
+                      : 'All users can use this promo code'}
+                  </Text>
+                </View>
+                <View style={[styles.toggle, formData.first_time_only && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, formData.first_time_only && styles.toggleThumbActive]} />
+                </View>
+              </Pressable>
+            </View>
+
             {/* Active Status */}
             <View style={styles.formGroup}>
               <Pressable
@@ -537,17 +572,37 @@ const styles = StyleSheet.create({
   promoTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  promoTitleContainer: {
+    flex: 1,
   },
   promoCode: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#1F2937',
+    marginBottom: 4,
+  },
+  firstTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  firstTimeBadgeText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
+    color: '#7C3AED',
   },
   promoActions: {
     flexDirection: 'row',
     gap: 6,
+    marginLeft: 12,
   },
   actionButton: {
     width: 28,

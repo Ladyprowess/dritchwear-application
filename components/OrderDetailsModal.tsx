@@ -92,24 +92,29 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
   const downloadImage = async (imageUrl: string) => {
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission denied', 'You need to allow access to save images.');
-      return;
-    }
-  
     try {
-      const fileName = imageUrl.split('/').pop();
+      // Request only the necessary permissions (no audio)
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'You need to allow access to save images.');
+        return;
+      }
+  
+      const fileName = imageUrl.split('/').pop() || 'logo.png';
       const fileUri = FileSystem.documentDirectory + fileName;
   
+      // Download the file
       const downloaded = await FileSystem.downloadAsync(imageUrl, fileUri);
+      
+      // Save to media library
       const asset = await MediaLibrary.createAssetAsync(downloaded.uri);
       await MediaLibrary.createAlbumAsync('Downloads', asset, false);
   
-      Alert.alert('Download complete', 'The logo has been saved to your Downloads.');
+      Alert.alert('Success', 'The logo has been saved to your Downloads folder.');
     } catch (error) {
       console.error('Download failed:', error);
-      Alert.alert('Download failed', 'Could not save the image.');
+      Alert.alert('Download failed', 'Could not save the image. Please try again.');
     }
   };
   

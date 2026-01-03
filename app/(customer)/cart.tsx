@@ -89,12 +89,11 @@ export default function CartScreen() {
       setPromoError('Please enter a promo code');
       return;
     }
-
+  
     setLoadingPromo(true);
     setPromoError('');
   
     try {
-      // Fetch the promo code from the database
       const { data, error } = await supabase
         .from('promo_codes')
         .select('*')
@@ -104,54 +103,74 @@ export default function CartScreen() {
   
       if (error || !data) {
         setPromoError('Invalid or expired promo code');
-        setLoadingPromo(false);
         return;
       }
   
-      // Check usage limits
-      if (data.max_uses !== null && data.current_uses >= data.max_uses) {
+      // ✅ Usage limits (NEW columns)
+      if (data.max_usage !== null && data.used_count >= data.max_usage) {
         setPromoError('This promo code has reached its usage limit');
-        setLoadingPromo(false);
         return;
       }
   
-      // Check date validity
+      // ✅ Expiry (NEW column)
       const now = new Date();
-      if (data.start_date && new Date(data.start_date) > now) {
-        setPromoError('This promo code is not active yet');
-        setLoadingPromo(false);
-        return;
-      }
-      
-      if (data.end_date && new Date(data.end_date) < now) {
+      if (data.expires_at && new Date(data.expires_at) < now) {
         setPromoError('This promo code has expired');
-        setLoadingPromo(false);
         return;
       }
   
-      // Check minimum order amount
-      if (data.min_order_amount && getSubtotalInUserCurrency() < convertFromNGN(data.min_order_amount, userCurrency)) {
-        setPromoError(`Minimum order of ${formatCurrency(convertFromNGN(data.min_order_amount, userCurrency), userCurrency)} required`);
-        setLoadingPromo(false);
+      // ✅ Minimum order amount (still same column)
+      if (
+        data.min_order_amount &&
+        getSubtotalInUserCurrency() < convertFromNGN(data.min_order_amount, userCurrency)
+      ) {
+        setPromoError(
+          `Minimum order of ${formatCurrency(convertFromNGN(data.min_order_amount, userCurrency), userCurrency)} required`
+        );
         return;
       }
   
-      // Apply the promo code
+      // ✅ First-time-only check (NEW column)
+      if (data.first_time_only) {
+        const userId = profile?.id; // adjust if your profile uses a different field
+        if (!userId) {
+          setPromoError('Please sign in again and try');
+          return;
+        }
+  
+        const { count, error: countError } = await supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+  
+        if (countError) {
+          setPromoError('Could not validate eligibility. Please try again.');
+          return;
+        }
+  
+        if ((count || 0) > 0) {
+          setPromoError('This promo code is only for first-time users');
+          return;
+        }
+      }
+  
+      // ✅ Apply promo
       setAppliedPromo({
         code: data.code,
         discount: data.discount_percentage / 100,
-        description: data.description
+        description: data.description,
       });
   
       setPromoCode('');
-      Alert.alert('Promo Applied!', `${data.description} has been applied to your order.`);
-    } catch (error) {
-      console.error('Error applying promo code:', error);
+      Alert.alert('Promo Applied!', `${data.code} has been applied to your order.`);
+    } catch (e) {
+      console.error('Error applying promo code:', e);
       setPromoError('Error applying promo code. Please try again.');
     } finally {
       setLoadingPromo(false);
     }
   };
+  
 
   const handleRemovePromo = () => {
     setAppliedPromo(null);

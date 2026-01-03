@@ -21,6 +21,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload logos.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs access to save logos to your photo library.",
         "NSCameraUsageDescription": "This app needs camera access to allow you take product or logo photos."
       }
     },
@@ -34,6 +35,14 @@
       "expo-font",
       "expo-web-browser",
       "expo-system-ui",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Dritchwear to access your photos to upload logos.",
+          "savePhotosPermission": "Allow Dritchwear to save logos to your photo library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
       [
         "expo-build-properties",
         {
@@ -69,7 +78,9 @@
       "versionCode": 8,
       "permissions": [
         "NOTIFICATIONS",
-        "READ_MEDIA_IMAGES"
+        "READ_MEDIA_IMAGES",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
