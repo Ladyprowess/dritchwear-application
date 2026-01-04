@@ -51,7 +51,7 @@ export default function ShopScreen() {
       .from('products')
       .select('*')
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
   
     const { data: ratingsData, error: ratingError } = await supabase
       .from('product_rating_summaries')
