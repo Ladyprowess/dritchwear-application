@@ -447,13 +447,13 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
                 </View>
 
                 {/* Promo Code (if applied) */}
-                {!isCustomOrder && order.promo_code && (
+                {!isCustomOrder && order.promo_code && isAdmin && (
                   <View style={styles.infoRow}>
                     <Tag size={20} color="#10B981" />
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Promo Code</Text>
                       <Text style={[styles.infoValue, { color: '#10B981' }]}>
-                        {order.promo_code} ({formatCurrency(order.discount_amount || 0, 'NGN')} discount)
+                      {order.promo_code} ({formatAmountInPaymentCurrency(order.discount_amount ?? 0)} discount)
                       </Text>
                     </View>
                   </View>
@@ -716,14 +716,15 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
                     </View>
                     
                     {/* Show discount if promo code was applied */}
-                    {order.promo_code && order.discount_amount && order.discount_amount > 0 && (
-                      <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Discount ({order.promo_code})</Text>
-                        <Text style={styles.discountValue}>
-                          -{formatAmountInPaymentCurrency(order.discount_amount)}
-                        </Text>
-                      </View>
-                    )}
+                    {order.promo_code && (
+  <View style={styles.summaryRow}>
+    <Text style={styles.summaryLabel}>Discount ({order.promo_code})</Text>
+    <Text style={styles.discountValue}>
+      -{formatAmountInPaymentCurrency(order.discount_amount ?? 0)}
+    </Text>
+  </View>
+)}
+
                     
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Service Fee</Text>

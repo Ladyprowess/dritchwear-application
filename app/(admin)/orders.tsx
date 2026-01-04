@@ -83,6 +83,8 @@ export default function AdminOrdersScreen() {
           subtotal,
           service_fee,
           delivery_fee,
+          promo_code,
+          discount_amount,
           total,
           payment_method,
           payment_status,
@@ -123,7 +125,18 @@ console.log('🧪 CUSTOM REQUEST DATA:', customData);
 console.log('🧪 CUSTOM REQUEST ERROR:', customError);
 
 
-      if (ordersData) setOrders(ordersData);
+const normalisedOrders = (ordersData || []).map((o: any) => ({
+  ...o,
+  subtotal: Number(o.subtotal || 0),
+  service_fee: Number(o.service_fee || 0),
+  delivery_fee: Number(o.delivery_fee || 0),
+  total: Number(o.total || 0),
+  discount_amount: Number(o.discount_amount || 0),
+  original_amount: o.original_amount == null ? undefined : Number(o.original_amount),
+}));
+
+setOrders(normalisedOrders);
+
       if (customData) setCustomRequests(customData);
 
       // Combine and filter
