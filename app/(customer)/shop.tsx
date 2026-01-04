@@ -1,3 +1,8 @@
+// Key changes for multi-category support in shop page:
+// 1. Updated Product interface to use 'categories' array
+// 2. Modified fetchProducts to handle backward compatibility
+// 3. Updated filtering logic to check if category is in categories array
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +22,7 @@ interface Product {
   description: string;
   price: number;
   image_url: string;
-  category: string;
+  categories: string[]; // Changed from 'category' to 'categories' array
   sizes: string[];
   colors: string[];
   stock: number;
@@ -63,11 +68,22 @@ export default function ShopScreen() {
       return;
     }
   
-    // Merge review data into each product
+    // Merge review data into each product and handle backward compatibility
     const merged = productsData.map(product => {
       const rating = ratingsData?.find(r => r.product_id === product.id);
+      
+      // Handle backward compatibility: convert old 'category' field to 'categories' array
+      let productCategories: string[] = [];
+      if (Array.isArray(product.categories)) {
+        productCategories = product.categories;
+      } else if (product.category) {
+        // Old format with single category
+        productCategories = [product.category];
+      }
+      
       return {
         ...product,
+        categories: productCategories,
         total_reviews: rating?.total_reviews || 0,
         average_rating: rating?.average_rating || 0
       };
@@ -77,7 +93,6 @@ export default function ShopScreen() {
     setFilteredProducts(merged);
     setLoading(false);
   };
-  
 
   useEffect(() => {
     fetchProducts();
@@ -86,25 +101,31 @@ export default function ShopScreen() {
   useEffect(() => {
     let filtered = [...products];
   
+    // Filter by category - now checks if selected category is in the categories array
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter(p => p.category === selectedCategory);
+      filtered = filtered.filter(p => p.categories.includes(selectedCategory));
     }
   
+    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.categories.some(cat => cat.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
   
+    // Filter by sizes
     if (selectedSizes.length > 0) {
       filtered = filtered.filter(p => p.sizes.some(size => selectedSizes.includes(size)));
     }
   
+    // Filter by colors
     if (selectedColors.length > 0) {
       filtered = filtered.filter(p => p.colors.some(color => selectedColors.includes(color)));
     }
 
+    // Filter by price range
     if (minPrice !== null) {
       filtered = filtered.filter(p => p.price >= minPrice);
     }
@@ -153,28 +174,40 @@ export default function ShopScreen() {
           <Text style={styles.productDescription} numberOfLines={2}>
             {product.description}
           </Text>
+          
+          {/* Display categories */}
+          {product.categories.length > 0 && (
+            <View style={styles.categoriesRow}>
+              {product.categories.map((cat, index) => (
+                <Text key={index} style={styles.categoryBadge}>
+                  {cat}
+                </Text>
+              ))}
+            </View>
+          )}
+          
           <View style={styles.productMeta}>
             <Text style={styles.productPrice}>
               {formatCurrency(productPrice, userCurrency)}
             </Text>
             <View style={styles.ratingContainer}>
-            <Star
-  size={12}
-  color="#E5E7EB"
-  fill={
-    product.total_reviews && product.total_reviews > 0
-      ? '#F59E0B' // gold fill if reviews exist
-      : '#E5E7EB' // gray fill if no reviews
-  }
-/>
-<Text style={styles.ratingText}>
-  {product.total_reviews && product.total_reviews > 0
-    ? `${product.average_rating?.toFixed(1)} (${product.total_reviews})`
-    : 'No reviews'}
-</Text>
-</View>
-
+              <Star
+                size={12}
+                color="#E5E7EB"
+                fill={
+                  product.total_reviews && product.total_reviews > 0
+                    ? '#F59E0B' // gold fill if reviews exist
+                    : '#E5E7EB' // gray fill if no reviews
+                }
+              />
+              <Text style={styles.ratingText}>
+                {product.total_reviews && product.total_reviews > 0
+                  ? `${product.average_rating?.toFixed(1)} (${product.total_reviews})`
+                  : 'No reviews'}
+              </Text>
+            </View>
           </View>
+          
           <View style={styles.productVariants}>
             <View style={styles.sizesContainer}>
               {product.sizes.slice(0, 3).map((size, index) => (
@@ -442,31 +475,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  cartButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#7C3AED',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cartBadgeText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-  },
   searchContainer: {
     marginBottom: 16,
   },
@@ -525,9 +533,6 @@ const styles = StyleSheet.create({
   categoryTextActive: {
     color: '#FFFFFF',
   },
-  productsContainer: {
-    paddingTop: 40,
-  },
   productCard: {
     flex: 1,
     marginHorizontal: 4,
@@ -559,8 +564,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    marginBottom: 8,
+    marginBottom: 6,
     lineHeight: 16,
+  },
+  categoriesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 8,
+  },
+  categoryBadge: {
+    fontSize: 10,
+    fontFamily: 'Inter-Medium',
+    color: '#7C3AED',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   productMeta: {
     flexDirection: 'row',
@@ -614,14 +634,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#10B981',
   },
-  addToCartButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#7C3AED',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -633,38 +645,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
-  },
-  cartSummary: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  cartSummaryContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cartSummaryText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-  },
-  checkoutButton: {
-    backgroundColor: '#7C3AED',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  checkoutButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
   },
   
   // Modal styles
