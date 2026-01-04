@@ -1,3 +1,9 @@
+// Key changes for dual category support:
+// 1. Changed 'category' field to 'categories' array in Product interface
+// 2. Updated form to allow selecting 2 categories
+// 3. Modified filtering logic to work with category arrays
+// 4. Updated database operations to store categories as array
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,7 +17,7 @@ interface Product {
   description: string;
   price: number;
   image_url: string;
-  category: string;
+  categories: string[]; // Changed from single category to array
   sizes: string[];
   colors: string[];
   stock: number;
@@ -25,7 +31,7 @@ interface ProductFormData {
   description: string;
   price: string;
   image_url: string;
-  category: string;
+  categories: string[]; // Changed to array
   sizes: string;
   colors: string;
   stock: string;
@@ -51,7 +57,7 @@ export default function AdminProductsScreen() {
     description: '',
     price: '',
     image_url: '',
-    category: categories[0],
+    categories: [], // Initialize as empty array
     sizes: defaultSizes.join(', '),
     colors: defaultColors.join(', '),
     stock: '0',
@@ -61,7 +67,6 @@ export default function AdminProductsScreen() {
   const fetchProducts = async () => {
     setLoading(true);
   
-    // 1. Fetch all products
     const { data: rawProducts, error: productError } = await supabase
       .from('products')
       .select('*')
@@ -73,7 +78,6 @@ export default function AdminProductsScreen() {
       return;
     }
   
-    // 2. Fetch primary images
     const { data: images, error: imageError } = await supabase
       .from('product_images')
       .select('product_id, image_url')
@@ -85,12 +89,13 @@ export default function AdminProductsScreen() {
       return;
     }
   
-    // 3. Attach the primary image to each product
     const productsWithImages = rawProducts.map((product) => {
       const primaryImage = images.find((img) => img.product_id === product.id);
       return {
         ...product,
         image_url: primaryImage?.image_url || product.image_url,
+        categories: Array.isArray(product.categories) ? product.categories : 
+                    product.category ? [product.category] : [], // Backwards compatibility
       };
     });
   
@@ -98,7 +103,6 @@ export default function AdminProductsScreen() {
     setFilteredProducts(productsWithImages);
     setLoading(false);
   };
-  
 
   useEffect(() => {
     fetchProducts();
@@ -108,20 +112,21 @@ export default function AdminProductsScreen() {
     let filtered = products;
 
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter(product => 
+        product.categories.includes(selectedCategory)
+      );
     }
 
     if (searchQuery) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+        product.categories.some(cat => cat.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
     setFilteredProducts(filtered);
   }, [products, selectedCategory, searchQuery]);
-
 
   useEffect(() => {
     const subscription = supabase
@@ -129,7 +134,7 @@ export default function AdminProductsScreen() {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'products',
         },
@@ -137,7 +142,6 @@ export default function AdminProductsScreen() {
           console.log('Product change detected:', payload);
           
           if (payload.eventType === 'UPDATE') {
-            // Update existing product
             setProducts(prevProducts => 
               prevProducts.map(product => 
                 product.id === payload.new.id 
@@ -154,10 +158,8 @@ export default function AdminProductsScreen() {
               )
             );
           } else if (payload.eventType === 'INSERT') {
-            // Add new product (if needed)
-            fetchProducts(); // Refetch to maintain order and get images
+            fetchProducts();
           } else if (payload.eventType === 'DELETE') {
-            // Remove deleted product
             setProducts(prev => prev.filter(p => p.id !== payload.old.id));
             setFilteredProducts(prev => prev.filter(p => p.id !== payload.old.id));
           }
@@ -176,7 +178,7 @@ export default function AdminProductsScreen() {
       description: '',
       price: '',
       image_url: '',
-      category: categories[0],
+      categories: [],
       sizes: defaultSizes.join(', '),
       colors: defaultColors.join(', '),
       stock: '0',
@@ -197,7 +199,7 @@ export default function AdminProductsScreen() {
       description: product.description,
       price: product.price.toString(),
       image_url: product.image_url,
-      category: product.category,
+      categories: product.categories || [],
       sizes: product.sizes.join(', '),
       colors: product.colors.join(', '),
       stock: product.stock.toString(),
@@ -221,6 +223,30 @@ export default function AdminProductsScreen() {
     setSelectedProduct(null);
   };
 
+  const toggleCategory = (category: string) => {
+    setFormData(prev => {
+      const currentCategories = prev.categories;
+      
+      if (currentCategories.includes(category)) {
+        // Remove category
+        return {
+          ...prev,
+          categories: currentCategories.filter(c => c !== category)
+        };
+      } else {
+        // Add category (max 2)
+        if (currentCategories.length >= 2) {
+          Alert.alert('Limit Reached', 'You can select a maximum of 2 categories');
+          return prev;
+        }
+        return {
+          ...prev,
+          categories: [...currentCategories, category]
+        };
+      }
+    });
+  };
+
   const validateForm = (): string | null => {
     if (!formData.name.trim()) return 'Product name is required';
     if (!formData.description.trim()) return 'Description is required';
@@ -228,6 +254,8 @@ export default function AdminProductsScreen() {
       return 'Valid price is required';
     }
     if (!formData.image_url.trim()) return 'Image URL is required';
+    if (formData.categories.length === 0) return 'At least one category is required';
+    if (formData.categories.length > 2) return 'Maximum 2 categories allowed';
     if (!formData.stock || isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
       return 'Valid stock quantity is required';
     }
@@ -246,7 +274,7 @@ export default function AdminProductsScreen() {
       description: formData.description.trim(),
       price: Number(formData.price),
       image_url: formData.image_url.trim(),
-      category: formData.category,
+      categories: formData.categories,
       sizes: formData.sizes.split(',').map(s => s.trim()).filter(s => s),
       colors: formData.colors.split(',').map(c => c.trim()).filter(c => c),
       stock: Number(formData.stock),
@@ -329,10 +357,10 @@ export default function AdminProductsScreen() {
   };
 
   const getStockColor = (stock: number) => {
-    if (stock === 0) return '#EF4444'; // Red for out of stock
-    if (stock <= 5) return '#F59E0B'; // Orange for low stock
-    if (stock <= 20) return '#3B82F6'; // Blue for medium stock
-    return '#10B981'; // Green for good stock
+    if (stock === 0) return '#EF4444';
+    if (stock <= 5) return '#F59E0B';
+    if (stock <= 20) return '#3B82F6';
+    return '#10B981';
   };
 
   const renderProduct = (product: Product) => (
@@ -378,9 +406,13 @@ export default function AdminProductsScreen() {
             <Text style={styles.productPrice}>
               {formatCurrency(product.price)}
             </Text>
-            <Text style={styles.productCategory}>
-              {product.category}
-            </Text>
+            <View style={styles.categoriesContainer}>
+              {product.categories.map((cat, index) => (
+                <Text key={index} style={styles.productCategory}>
+                  {cat}
+                </Text>
+              ))}
+            </View>
           </View>
           
           <View style={styles.productDetails}>
@@ -433,7 +465,6 @@ export default function AdminProductsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Products</Text>
         <Pressable style={styles.addButton} onPress={openAddModal}>
@@ -442,7 +473,6 @@ export default function AdminProductsScreen() {
         </Pressable>
       </View>
 
-      {/* Search and Filter */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Search size={20} color="#9CA3AF" />
@@ -456,7 +486,6 @@ export default function AdminProductsScreen() {
         </View>
       </View>
 
-      {/* Category Filter */}
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
@@ -483,9 +512,7 @@ export default function AdminProductsScreen() {
           </Pressable>
         ))}
       </ScrollView>
-      
 
-      {/* Products List */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -509,14 +536,12 @@ export default function AdminProductsScreen() {
         )}
       </ScrollView>
 
-      {/* Product Details Modal */}
       <ProductDetailsModal
         product={selectedProduct}
         visible={showDetailsModal}
         onClose={closeDetailsModal}
       />
 
-      {/* Add/Edit Product Modal */}
       <Modal
         visible={showModal}
         animationType="slide"
@@ -540,7 +565,6 @@ export default function AdminProductsScreen() {
           </View>
 
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-            {/* Product Name */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Product Name *</Text>
               <TextInput
@@ -552,7 +576,6 @@ export default function AdminProductsScreen() {
               />
             </View>
 
-            {/* Description */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Description *</Text>
               <TextInput
@@ -567,7 +590,6 @@ export default function AdminProductsScreen() {
               />
             </View>
 
-            {/* Price and Stock */}
             <View style={styles.formRow}>
               <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
                 <Text style={styles.formLabel}>Price (₦) *</Text>
@@ -597,23 +619,27 @@ export default function AdminProductsScreen() {
               </View>
             </View>
 
-            {/* Category */}
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Category *</Text>
+              <Text style={styles.formLabel}>
+                Categories * (Select up to 2)
+              </Text>
+              <Text style={styles.formHint}>
+                Selected: {formData.categories.length}/2
+              </Text>
               <View style={styles.categorySelector}>
                 {categories.map((category) => (
                   <Pressable
                     key={category}
                     style={[
                       styles.categoryOption,
-                      formData.category === category && styles.categoryOptionActive
+                      formData.categories.includes(category) && styles.categoryOptionActive
                     ]}
-                    onPress={() => setFormData(prev => ({ ...prev, category }))}
+                    onPress={() => toggleCategory(category)}
                   >
                     <Text
                       style={[
                         styles.categoryOptionText,
-                        formData.category === category && styles.categoryOptionTextActive
+                        formData.categories.includes(category) && styles.categoryOptionTextActive
                       ]}
                     >
                       {category}
@@ -623,7 +649,6 @@ export default function AdminProductsScreen() {
               </View>
             </View>
 
-            {/* Image URL */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Image URL *</Text>
               <View style={styles.inputWithIcon}>
@@ -646,7 +671,6 @@ export default function AdminProductsScreen() {
               ) : null}
             </View>
 
-            {/* Sizes */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Available Sizes</Text>
               <TextInput
@@ -659,7 +683,6 @@ export default function AdminProductsScreen() {
               <Text style={styles.formHint}>Separate sizes with commas</Text>
             </View>
 
-            {/* Colors */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Available Colors</Text>
               <TextInput
@@ -672,7 +695,6 @@ export default function AdminProductsScreen() {
               <Text style={styles.formHint}>Separate colors with commas</Text>
             </View>
 
-            {/* Active Status */}
             <View style={styles.formGroup}>
               <Pressable
                 style={styles.toggleContainer}
@@ -753,25 +775,26 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     maxHeight: 48,
-      marginBottom: 16,
+    marginBottom: 16,
+    gap: 4,
   },
   categoriesContent: {
     paddingHorizontal: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   categoryChip: {
     paddingHorizontal: 12,
-      paddingVertical: 6,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: '#FFFFFF',
-      borderWidth: 1,
-      borderColor: '#E5E7EB',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 8,
+    paddingVertical: 6,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   categoryChipActive: {
     backgroundColor: '#7C3AED',
@@ -878,7 +901,7 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
   },
   productCategory: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Inter-Medium',
     color: '#9CA3AF',
     backgroundColor: '#F3F4F6',
@@ -891,19 +914,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  stockContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   productStock: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
+    fontFamily: 'Inter-SemiBold',
   },
-  variantInfo: {
-    alignItems: 'center',
+  lowStockBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  variantText: {
+  lowStockText: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-    marginBottom: 2,
+    fontFamily: 'Inter-SemiBold',
+    color: '#F59E0B',
+  },
+  outOfStockBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  outOfStockText: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+    color: '#EF4444',
   },
   statusButton: {
     flexDirection: 'row',
@@ -1048,6 +1088,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 8,
   },
   categoryOption: {
     paddingHorizontal: 12,
