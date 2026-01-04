@@ -4,6 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Send, Users, User, Gift, CircleAlert as AlertCircle, Bell, Search, X, Check } from 'lucide-react-native';
 
+function showSupabaseError(error: any, title: string) {
+  const message = error?.message || 'An error occurred';
+  Alert.alert(title, message);
+}
+
 interface Customer {
   id: string;
   full_name: string | null;
@@ -100,74 +105,78 @@ export default function AdminNotificationsScreen() {
     setSending(true);
 
     try {
+      let userIds: string[] = [];
+      let sendToAll = false;
+
       if (selectedAudience === 'individual') {
-        // Send to selected individual customers
-        if (selectedCustomers.length === 0) {
-          throw new Error('No customers selected');
-        }
-
-        const notifications = selectedCustomers.map(customer => ({
-          user_id: customer.id,
-          title: title.trim(),
-          message: message.trim(),
-          type: selectedType as any,
-        }));
-
-        console.log('📤 Sending individual notifications to:', notifications.length, 'customers');
-        console.log('📋 Selected customer IDs:', selectedCustomers.map(c => c.id));
-        console.log('📋 Notification data:', notifications);
-
-        const { data, error } = await supabase
-          .from('notifications')
-          .insert(notifications)
-          .select();
-
-        if (error) {
-          console.error('❌ Error inserting individual notifications:', error);
-          throw error;
-        }
-        
-        console.log('✅ Individual notifications sent successfully:', data?.length);
-        console.log('📊 Inserted notifications:', data);
+        userIds = selectedCustomers.map(c => c.id);
       } else if (selectedAudience === 'customers') {
-        // Send to all customers
-        // Get all customer user IDs
         const { data: customers } = await supabase
           .from('profiles')
           .select('id')
           .eq('role', 'customer');
+        userIds = customers?.map(c => c.id) || [];
+      } else {
+        sendToAll = true;
+      }
 
-        if (customers && customers.length > 0) {
-          const notifications = customers.map(customer => ({
+      const notifications = selectedAudience === 'individual'
+        ? selectedCustomers.map(customer => ({
             user_id: customer.id,
             title: title.trim(),
             message: message.trim(),
             type: selectedType as any,
-          }));
-
-          const { error } = await supabase
-            .from('notifications')
-            .insert(notifications);
-
-          if (error) throw error;
-        }
-      } else {
-        // Send to all users (broadcast)
-        const { error } = await supabase
-          .from('notifications')
-          .insert({
-            user_id: null, // Broadcast to all users
+          }))
+        : selectedAudience === 'customers'
+        ? (userIds.map(id => ({
+            user_id: id,
             title: title.trim(),
             message: message.trim(),
             type: selectedType as any,
-          });
+          })))
+        : {
+            user_id: null,
+            title: title.trim(),
+            message: message.trim(),
+            type: selectedType as any,
+          };
 
-        if (error) throw error;
+      const { error: dbError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (dbError) throw dbError;
+
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/send-push-notifications`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify({
+            userIds,
+            title: title.trim(),
+            message: message.trim(),
+            type: selectedType,
+            sendToAll,
+          }),
+        }
+      );
+
+      const pushResult = await response.json();
+
+      if (!response.ok) {
+        console.warn('Push notification warning:', pushResult);
       }
 
       Alert.alert(
         'Success',
-        'Notification sent successfully!',
+        `Notification saved and push sent to customers!\n\nPush notifications sent: ${pushResult.sent || 0}`,
         [{ text: 'OK', onPress: () => {
           setTitle('');
           setMessage('');
@@ -177,7 +186,7 @@ export default function AdminNotificationsScreen() {
     } catch (error: any) {
       console.error('❌ Send notification error:', error);
       showSupabaseError(error, 'Failed to send notification');
-    } finally {    
+    } finally {
       setSending(false);
     }
   };

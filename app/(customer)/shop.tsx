@@ -25,7 +25,7 @@ interface Product {
   average_rating?: number;
 }
 
-const categories = ['All', 'T-Shirts', 'Hoodies', 'Polos', 'Joggers', 'Casuals', 'Merchandise', 'Accessories'];
+const categories = ['All', 'T-Shirts', 'Hoodies', 'Polos', 'Joggers', 'Jackets', 'Shorts', 'Trousers', 'Merchandise', 'Accessories'];
 
 export default function ShopScreen() {
   const { user, profile, refreshProfile } = useAuth();

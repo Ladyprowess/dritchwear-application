@@ -17,13 +17,38 @@
       "visible": "sticky-immersive",
       "backgroundColor": "#000000"
     },
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.dritchwear.app",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload logos.",
         "NSPhotoLibraryAddUsageDescription": "This app needs access to save logos to your photo library.",
-        "NSCameraUsageDescription": "This app needs camera access to allow you take product or logo photos."
+        "NSCameraUsageDescription": "This app needs camera access to allow you take product or logo photos.",
+        "NSUserNotificationsUsageDescription": "Allow Dritchwear to send you notifications about your orders, promotions, and important updates."
       }
+    },
+    "android": {
+      "package": "com.dritchwear.app",
+      "versionCode": 9,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "NOTIFICATIONS",
+        "READ_MEDIA_IMAGES",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "useNextNotificationsApi": true,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -41,6 +66,15 @@
           "photosPermission": "Allow Dritchwear to access your photos to upload logos.",
           "savePhotosPermission": "Allow Dritchwear to save logos to your photo library.",
           "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#7C3AED",
+          "sounds": [],
+          "mode": "production"
         }
       ],
       [
@@ -72,20 +106,6 @@
     },
     "updates": {
       "url": "https://u.expo.dev/99a85905-b370-4a58-b525-5de48d3b5568"
-    },
-    "android": {
-      "package": "com.dritchwear.app",
-      "versionCode": 9,
-      "permissions": [
-        "NOTIFICATIONS",
-        "READ_MEDIA_IMAGES",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_EXTERNAL_STORAGE"
-      ],
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
     }
   }
 }
