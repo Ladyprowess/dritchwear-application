@@ -11,12 +11,21 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface AppliedPromo {
+  code: string;
+  discount: number;
+  description: string;
+  promoId: string;
+}
+
 interface CartContextType {
   items: CartItem[];
+  appliedPromo: AppliedPromo | null;
   addToCart: (items: CartItem[]) => Promise<void>;
   updateQuantity: (index: number, quantity: number) => Promise<void>;
   removeItem: (index: number) => Promise<void>;
   clearCart: () => Promise<void>;
+  setAppliedPromo: (promo: AppliedPromo | null) => Promise<void>;
   getTotalItems: () => number;
   getSubtotal: () => number;
   loading: boolean;
@@ -24,36 +33,50 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType>({
   items: [],
+  appliedPromo: null,
   addToCart: async () => {},
   updateQuantity: async () => {},
   removeItem: async () => {},
   clearCart: async () => {},
+  setAppliedPromo: async () => {},
   getTotalItems: () => 0,
   getSubtotal: () => 0,
   loading: false,
 });
 
 const CART_STORAGE_KEY = '@dritchwear_cart';
+const PROMO_STORAGE_KEY = '@dritchwear_applied_promo';
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [appliedPromo, setAppliedPromoState] = useState<AppliedPromo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load cart from storage on app start
+  // Load cart and promo from storage on app start
   useEffect(() => {
-    loadCart();
+    loadCartAndPromo();
   }, []);
 
-  const loadCart = async () => {
+  const loadCartAndPromo = async () => {
     try {
-      const storedCart = await AsyncStorage.getItem(CART_STORAGE_KEY);
+      const [storedCart, storedPromo] = await Promise.all([
+        AsyncStorage.getItem(CART_STORAGE_KEY),
+        AsyncStorage.getItem(PROMO_STORAGE_KEY)
+      ]);
+
       if (storedCart) {
         const parsedCart = JSON.parse(storedCart);
         setItems(parsedCart);
         console.log('✅ Cart loaded from storage:', parsedCart.length, 'items');
       }
+
+      if (storedPromo) {
+        const parsedPromo = JSON.parse(storedPromo);
+        setAppliedPromoState(parsedPromo);
+        console.log('✅ Promo loaded from storage:', parsedPromo.code);
+      }
     } catch (error) {
-      console.error('❌ Error loading cart:', error);
+      console.error('❌ Error loading cart/promo:', error);
     } finally {
       setLoading(false);
     }
@@ -68,11 +91,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const savePromo = async (promo: AppliedPromo | null) => {
+    try {
+      if (promo) {
+        await AsyncStorage.setItem(PROMO_STORAGE_KEY, JSON.stringify(promo));
+        console.log('💾 Promo saved to storage:', promo.code);
+      } else {
+        await AsyncStorage.removeItem(PROMO_STORAGE_KEY);
+        console.log('🗑️ Promo removed from storage');
+      }
+    } catch (error) {
+      console.error('❌ Error saving promo:', error);
+    }
+  };
+
+  const setAppliedPromo = async (promo: AppliedPromo | null) => {
+    setAppliedPromoState(promo);
+    await savePromo(promo);
+  };
+
   const addToCart = async (newItems: CartItem[]) => {
     const updatedItems = [...items];
     
     newItems.forEach(newItem => {
-      // Check if this combination already exists
       const existingIndex = updatedItems.findIndex(item => 
         item.productId === newItem.productId && 
         item.size === newItem.size && 
@@ -80,10 +121,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       );
       
       if (existingIndex >= 0) {
-        // Update quantity if item exists
         updatedItems[existingIndex].quantity += newItem.quantity;
       } else {
-        // Add new item
         updatedItems.push(newItem);
       }
     });
@@ -113,8 +152,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = async () => {
     setItems([]);
-    await saveCart([]);
-    console.log('🗑️ Cart cleared');
+    setAppliedPromoState(null);
+    await Promise.all([
+      saveCart([]),
+      savePromo(null)
+    ]);
+    console.log('🗑️ Cart and promo cleared');
   };
 
   const getTotalItems = () => {
@@ -129,10 +172,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     <CartContext.Provider
       value={{
         items,
+        appliedPromo,
         addToCart,
         updateQuantity,
         removeItem,
         clearCart,
+        setAppliedPromo,
         getTotalItems,
         getSubtotal,
         loading,

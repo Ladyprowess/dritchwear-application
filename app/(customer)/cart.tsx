@@ -11,12 +11,12 @@ import { supabase } from '@/lib/supabase';
 export default function CartScreen() {
   const router = useRouter();
   const { profile } = useAuth();
-  const { items, updateQuantity, removeItem, clearCart, getTotalItems, getSubtotal } = useCart();
+  const { items, updateQuantity, removeItem, clearCart, getTotalItems, getSubtotal, appliedPromo, setAppliedPromo } = useCart();
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<{code: string, discount: number, description: string} | null>(null);
   const [promoError, setPromoError] = useState('');
   const [availablePromos, setAvailablePromos] = useState<any[]>([]);
   const [loadingPromo, setLoadingPromo] = useState(false);
+  const [validatingPromo, setValidatingPromo] = useState(false);
 
   const userCurrency = profile?.preferred_currency || 'NGN';
 
@@ -32,6 +32,53 @@ export default function CartScreen() {
 
     fetchPromos();
   }, []);
+
+  // Re-validate applied promo when cart screen loads or user changes
+  useEffect(() => {
+    if (appliedPromo && profile?.id) {
+      validateExistingPromo();
+    }
+  }, [appliedPromo?.promoId, profile?.id]);
+
+  const validateExistingPromo = async () => {
+    if (!appliedPromo || !profile?.id) return;
+
+    setValidatingPromo(true);
+    try {
+      // Check if user has used this promo in any completed order
+      const hasUsed = await checkPromoUsage(appliedPromo.promoId, profile.id);
+      
+      if (hasUsed) {
+        // Remove the promo silently
+        await setAppliedPromo(null);
+        setPromoError('Your previously applied promo code has already been used');
+        
+        // Clear error after 5 seconds
+        setTimeout(() => setPromoError(''), 5000);
+      }
+    } catch (error) {
+      console.error('Error validating existing promo:', error);
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
+
+  // Check if user has already used this promo code in any completed order
+  const checkPromoUsage = async (promoId: string, userId: string) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('promo_code_id', promoId)
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking promo usage:', error);
+      return false;
+    }
+
+    return data && data.length > 0;
+  };
 
   const handleUpdateQuantity = async (index: number, change: number) => {
     const newQuantity = items[index].quantity + change;
@@ -58,10 +105,10 @@ export default function CartScreen() {
         { 
           text: 'Clear', 
           style: 'destructive',
-          onPress: () => {
-            clearCart();
-            setAppliedPromo(null);
+          onPress: async () => {
+            await clearCart(); // This now clears both cart and promo
             setPromoCode('');
+            setPromoError('');
           }
         }
       ]
@@ -89,6 +136,11 @@ export default function CartScreen() {
       setPromoError('Please enter a promo code');
       return;
     }
+
+    if (!profile?.id) {
+      setPromoError('Please sign in to use promo codes');
+      return;
+    }
   
     setLoadingPromo(true);
     setPromoError('');
@@ -105,21 +157,28 @@ export default function CartScreen() {
         setPromoError('Invalid or expired promo code');
         return;
       }
+
+      // Check if user has already used this specific promo code
+      const hasUsedPromo = await checkPromoUsage(data.id, profile.id);
+      if (hasUsedPromo) {
+        setPromoError('You have already used this promo code');
+        return;
+      }
   
-      // ✅ Usage limits (NEW columns)
+      // Usage limits
       if (data.max_usage !== null && data.used_count >= data.max_usage) {
         setPromoError('This promo code has reached its usage limit');
         return;
       }
   
-      // ✅ Expiry (NEW column)
+      // Expiry check
       const now = new Date();
       if (data.expires_at && new Date(data.expires_at) < now) {
         setPromoError('This promo code has expired');
         return;
       }
   
-      // ✅ Minimum order amount (still same column)
+      // Minimum order amount
       if (
         data.min_order_amount &&
         getSubtotalInUserCurrency() < convertFromNGN(data.min_order_amount, userCurrency)
@@ -130,18 +189,12 @@ export default function CartScreen() {
         return;
       }
   
-      // ✅ First-time-only check (NEW column)
+      // First-time-only check (for users who have never placed any order)
       if (data.first_time_only) {
-        const userId = profile?.id; // adjust if your profile uses a different field
-        if (!userId) {
-          setPromoError('Please sign in again and try');
-          return;
-        }
-  
         const { count, error: countError } = await supabase
           .from('orders')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId);
+          .eq('user_id', profile.id);
   
         if (countError) {
           setPromoError('Could not validate eligibility. Please try again.');
@@ -154,11 +207,12 @@ export default function CartScreen() {
         }
       }
   
-      // ✅ Apply promo
-      setAppliedPromo({
+      // Apply promo to context
+      await setAppliedPromo({
         code: data.code,
         discount: data.discount_percentage / 100,
-        description: data.description,
+        description: data.description || `${data.discount_percentage}% off`,
+        promoId: data.id,
       });
   
       setPromoCode('');
@@ -170,10 +224,9 @@ export default function CartScreen() {
       setLoadingPromo(false);
     }
   };
-  
 
-  const handleRemovePromo = () => {
-    setAppliedPromo(null);
+  const handleRemovePromo = async () => {
+    await setAppliedPromo(null);
     setPromoCode('');
     setPromoError('');
   };
@@ -194,14 +247,6 @@ export default function CartScreen() {
     }
     
     // Navigate to checkout with cart data and promo info
-    const checkoutData = {
-      items,
-      appliedPromo,
-      subtotal: getSubtotalInUserCurrency(),
-      discount: calculateDiscount(),
-      finalSubtotal: getFinalTotal()
-    };
-    
     router.push({
       pathname: '/(customer)/checkout',
       params: { 
@@ -302,6 +347,10 @@ export default function CartScreen() {
         <View style={styles.promoSection}>
           <Text style={styles.promoTitle}>Promo Code</Text>
           
+          {validatingPromo && (
+            <Text style={styles.validatingText}>Validating promo code...</Text>
+          )}
+          
           {appliedPromo ? (
             <View style={styles.appliedPromoCard}>
               <View style={styles.appliedPromoInfo}>
@@ -343,13 +392,6 @@ export default function CartScreen() {
           {promoError ? (
             <Text style={styles.promoError}>{promoError}</Text>
           ) : null}
-          
-          {!appliedPromo && availablePromos.length > 0 && (
-            <View style={styles.promoHint}>
-              <Text style={styles.promoHintText}>
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Order Summary */}
@@ -547,6 +589,13 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 12,
   },
+  validatingText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
   promoContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -586,18 +635,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#EF4444',
     marginTop: 6,
-  },
-  promoHint: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-  },
-  promoHintText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
   },
   appliedPromoCard: {
     flexDirection: 'row',

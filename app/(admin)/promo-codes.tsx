@@ -165,11 +165,21 @@ export default function PromoCodesScreen() {
       closeModal();
       fetchPromoCodes();
     } catch (error: any) {
-      if (error.code === '23505') {
-        Alert.alert('Error', 'This promo code already exists');
-      } else {
-        Alert.alert('Error', 'Failed to save promo code');
-      }
+      console.log('PROMO SAVE ERROR FULL:', JSON.stringify(error, null, 2));
+    
+      const code = error?.code ?? error?.error_code ?? 'NO_CODE';
+      const message = error?.message ?? 'No error message';
+      const details = error?.details ?? '';
+      const hint = error?.hint ?? '';
+    
+      Alert.alert(
+        'Save failed (debug)',
+        `Code: ${code}\nMessage: ${message}\n${details ? `Details: ${details}\n` : ''}${hint ? `Hint: ${hint}` : ''}`
+      );
+    
+      // optional friendly messages
+      if (code === '23505') Alert.alert('Error', 'This promo code already exists');
+      if (code === '42501') Alert.alert('Error', 'Permission denied (RLS / admin policy issue)');
     }
   };
 

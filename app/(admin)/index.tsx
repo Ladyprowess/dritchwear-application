@@ -52,98 +52,115 @@ export default function AdminDashboardScreen() {
   const [selectedOrder, setSelectedOrder] = useState<RecentOrder | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
 
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch user count
-      const { count: userCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'customer');
+  // Replace the fetchDashboardData function in index.tsx with this updated version:
 
-      // Fetch order stats
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('total, order_status, payment_status, currency, original_amount');
+const fetchDashboardData = async () => {
+  try {
+    // Fetch user count
+    const { count: userCount } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'customer');
 
-      // Fetch custom requests stats
-      const { data: customRequests } = await supabase
-        .from('custom_requests')
-        .select('status');
+    // Fetch order stats
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('total, order_status, payment_status, currency, original_amount');
 
-      // Fetch recent orders with user info (limit to 2)
-      const { data: recentOrdersData } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          user_id,
-          items,
-          subtotal,
-          service_fee,
-          delivery_fee,
-          total,
-          payment_method,
-          payment_status,
-          order_status,
-          delivery_address,
-          created_at,
-          currency,
-          original_amount,
-          profiles!inner(full_name, email, wallet_balance, preferred_currency)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(2);
+    // Fetch custom requests stats
+    const { data: customRequests } = await supabase
+      .from('custom_requests')
+      .select('status, invoices(amount, status, currency, original_amount)');
 
-      // Fetch recent custom requests (limit to 1)
-      const { data: recentCustomData } = await supabase
-        .from('custom_requests')
-        .select(`
-          id,
-          user_id,
-          title,
-          description,
-          quantity,
-          budget_range,
-          status,
-          created_at,
-          currency,
-          profiles!inner(full_name, email, wallet_balance, preferred_currency)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(1);
+    // Fetch recent orders with user info (limit to 2)
+    const { data: recentOrdersData } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        user_id,
+        items,
+        subtotal,
+        service_fee,
+        delivery_fee,
+        total,
+        payment_method,
+        payment_status,
+        order_status,
+        delivery_address,
+        created_at,
+        currency,
+        original_amount,
+        profiles!inner(full_name, email, wallet_balance, preferred_currency)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(2);
 
-      if (orders) {
-        const totalRevenue = orders
-          .filter(order => order.payment_status === 'paid')
-          .reduce((sum, order) => sum + order.total, 0);
-        
-        const pendingOrders = orders.filter(
-          order => order.order_status === 'pending'
-        ).length;
+    // Fetch recent custom requests (limit to 1)
+    const { data: recentCustomData } = await supabase
+      .from('custom_requests')
+      .select(`
+        id,
+        user_id,
+        title,
+        description,
+        quantity,
+        budget_range,
+        status,
+        created_at,
+        currency,
+        profiles!inner(full_name, email, wallet_balance, preferred_currency)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-        const totalOrdersCount = orders.length + (customRequests?.length || 0);
-
-        setStats({
-          totalUsers: userCount || 0,
-          totalOrders: totalOrdersCount,
-          totalRevenue,
-          pendingOrders,
+    if (orders) {
+      // Calculate regular order revenue
+      const totalRevenue = orders
+        .filter(order => order.payment_status === 'paid')
+        .reduce((sum, order) => sum + order.total, 0);
+      
+      // Calculate custom order revenue from paid invoices
+      let customRevenue = 0;
+      if (customRequests) {
+        customRequests.forEach(request => {
+          if (request.invoices) {
+            request.invoices.forEach((invoice: any) => {
+              if (invoice.status === 'paid') {
+                customRevenue += invoice.amount;
+              }
+            });
+          }
         });
       }
+      
+      const pendingOrders = orders.filter(
+        order => order.order_status === 'pending'
+      ).length;
 
-      // Combine recent orders and custom requests (max 3 total)
-      const combinedRecent = [
-        ...(recentOrdersData || []),
-        ...(recentCustomData || [])
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-       .slice(0, 3);
+      const totalOrdersCount = orders.length + (customRequests?.length || 0);
 
-      setRecentOrders(combinedRecent);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
+      setStats({
+        totalUsers: userCount || 0,
+        totalOrders: totalOrdersCount,
+        totalRevenue: totalRevenue + customRevenue, // ✅ Now includes custom order revenue
+        pendingOrders,
+      });
     }
-  };
+
+    // Combine recent orders and custom requests (max 3 total)
+    const combinedRecent = [
+      ...(recentOrdersData || []),
+      ...(recentCustomData || [])
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+     .slice(0, 3);
+
+    setRecentOrders(combinedRecent);
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const onRefresh = async () => {
     setRefreshing(true);
