@@ -283,7 +283,11 @@ export default function HelpSupportScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+  style={styles.scrollView} 
+  contentContainerStyle={{ paddingBottom: 40 }}
+  showsVerticalScrollIndicator={false}
+>
         {/* My Tickets */}
         {tickets.length > 0 && (
           <View style={styles.section}>
