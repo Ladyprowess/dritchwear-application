@@ -61,15 +61,23 @@ export default function PromoCodesScreen() {
   });
 
   const fetchPromoCodes = async () => {
-    const { data } = await supabase
-      .from('promo_codes')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setPromoCodes(data);
+    try {
+      const { data, error } = await supabase
+        .from('promo_codes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setPromoCodes(data);
+      }
+    } catch (error) {
+      console.error('Error fetching promo codes:', error);
+      Alert.alert('Error', 'Failed to load promo codes');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -134,7 +142,6 @@ export default function PromoCodesScreen() {
     }
 
     const promoData = {
-      code: formData.code.trim().toUpperCase(),
       discount_percentage: Number(formData.discount_percentage),
       discount_amount: formData.discount_amount ? Number(formData.discount_amount) : null,
       min_order_amount: formData.min_order_amount ? Number(formData.min_order_amount) : null,
@@ -146,6 +153,7 @@ export default function PromoCodesScreen() {
 
     try {
       if (editingPromo) {
+        // When editing, don't include the code field
         const { error } = await supabase
           .from('promo_codes')
           .update(promoData)
@@ -154,9 +162,13 @@ export default function PromoCodesScreen() {
         if (error) throw error;
         Alert.alert('Success', 'Promo code updated successfully');
       } else {
+        // When creating, include the code field
         const { error } = await supabase
           .from('promo_codes')
-          .insert(promoData);
+          .insert({
+            ...promoData,
+            code: formData.code.trim().toUpperCase(),
+          });
 
         if (error) throw error;
         Alert.alert('Success', 'Promo code created successfully');
@@ -165,21 +177,18 @@ export default function PromoCodesScreen() {
       closeModal();
       fetchPromoCodes();
     } catch (error: any) {
-      console.log('PROMO SAVE ERROR FULL:', JSON.stringify(error, null, 2));
-    
-      const code = error?.code ?? error?.error_code ?? 'NO_CODE';
-      const message = error?.message ?? 'No error message';
-      const details = error?.details ?? '';
-      const hint = error?.hint ?? '';
-    
-      Alert.alert(
-        'Save failed (debug)',
-        `Code: ${code}\nMessage: ${message}\n${details ? `Details: ${details}\n` : ''}${hint ? `Hint: ${hint}` : ''}`
-      );
-    
-      // optional friendly messages
-      if (code === '23505') Alert.alert('Error', 'This promo code already exists');
-      if (code === '42501') Alert.alert('Error', 'Permission denied (RLS / admin policy issue)');
+      console.log('PROMO SAVE ERROR:', error);
+      
+      const code = error?.code ?? 'UNKNOWN';
+      const message = error?.message ?? 'An error occurred';
+      
+      if (code === '23505') {
+        Alert.alert('Error', 'This promo code already exists');
+      } else if (code === '42501') {
+        Alert.alert('Error', 'Permission denied. Please check your admin permissions.');
+      } else {
+        Alert.alert('Error', `Failed to save promo code: ${message}`);
+      }
     }
   };
 
@@ -203,6 +212,7 @@ export default function PromoCodesScreen() {
               Alert.alert('Success', 'Promo code deleted successfully');
               fetchPromoCodes();
             } catch (error) {
+              console.error('Delete error:', error);
               Alert.alert('Error', 'Failed to delete promo code');
             }
           },
@@ -221,6 +231,7 @@ export default function PromoCodesScreen() {
       if (error) throw error;
       fetchPromoCodes();
     } catch (error) {
+      console.error('Toggle status error:', error);
       Alert.alert('Error', 'Failed to update promo code status');
     }
   };
@@ -374,14 +385,21 @@ export default function PromoCodesScreen() {
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             {/* Promo Code */}
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Promo Code *</Text>
+              <Text style={styles.formLabel}>
+                Promo Code *
+                {editingPromo && <Text style={styles.disabledNote}> (Cannot be changed)</Text>}
+              </Text>
               <TextInput
-                style={styles.formInput}
+                style={[
+                  styles.formInput,
+                  editingPromo && styles.formInputDisabled
+                ]}
                 value={formData.code}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, code: text.toUpperCase() }))}
                 placeholder="Enter promo code (e.g., SAVE20)"
                 placeholderTextColor="#9CA3AF"
                 autoCapitalize="characters"
+                editable={!editingPromo}
               />
             </View>
 
@@ -751,6 +769,11 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
+  disabledNote: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+  },
   formInput: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -761,6 +784,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#1F2937',
     backgroundColor: '#FFFFFF',
+  },
+  formInputDisabled: {
+    backgroundColor: '#F9FAFB',
+    color: '#9CA3AF',
   },
   inputWithIcon: {
     flexDirection: 'row',

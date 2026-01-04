@@ -28,8 +28,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
   },
   android: {
-    package: 'com.dritchwear.app',           // ✅ required for EAS builds
-    versionCode: 7,                          // ✅ increment this for each new build
+    package: 'com.dritchwear.app',           
+    versionCode: 10,                          
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',

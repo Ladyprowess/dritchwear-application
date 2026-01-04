@@ -150,6 +150,7 @@ export default function AdminNotificationsScreen() {
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+      // Add app icon URL to the notification payload
       const response = await fetch(
         `${supabaseUrl}/functions/v1/send-push-notifications`,
         {
@@ -164,6 +165,10 @@ export default function AdminNotificationsScreen() {
             message: message.trim(),
             type: selectedType,
             sendToAll,
+            // Add icon URL - update this with your actual app icon URL
+            icon: 'https://github.com/Ladyprowess/store-image/blob/main/images/icon.png?raw=true', // Replace with your app's icon URL
+            // Or use a relative path if the icon is bundled with your app
+            // icon: require('../../assets/icon.png'), // This won't work in the API call
           }),
         }
       );
