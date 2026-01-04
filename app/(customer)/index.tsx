@@ -46,39 +46,81 @@ export default function HomeScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
 
-  const fetchProducts = async () => {
-    try {
-      console.log('Fetching products...');
-      
-      // First check if we have a session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found, skipping product fetch');
-        setLoading(false);
-        return;
-      }
+  
 
-      const { data, error } = await supabase
-  .from('product_card_data')
-  .select('*')
-  .eq('is_active', true)
-  .limit(6);
-
-      
-      if (error) {
-        console.error('Error fetching products:', error);
-        // Don't show alert for auth errors, just log them
-        if (!error.message.includes('Auth session missing')) {
-          Alert.alert('Error', 'Failed to load products');
-        }
-      } else {
-        console.log('Products fetched:', data?.length);
-        setProducts(data || []);
-      }
-    } catch (error) {
-      console.error('Error in fetchProducts:', error);
+const fetchProductsWithReviews = async () => {
+  try {
+    console.log('Fetching products...');
+    
+    // First check if we have a session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.log('No session found, skipping product fetch');
+      setLoading(false);
+      return;
     }
-  };
+
+    // Fetch products
+    const { data: productsData, error: productsError } = await supabase
+      .from('product_card_data')
+      .select('*')
+      .eq('is_active', true)
+      .limit(6);
+
+    if (productsError) {
+      console.error('Error fetching products:', productsError);
+      if (!productsError.message.includes('Auth session missing')) {
+        Alert.alert('Error', 'Failed to load products');
+      }
+      return;
+    }
+
+    if (!productsData || productsData.length === 0) {
+      console.log('No products found');
+      setProducts([]);
+      return;
+    }
+
+    // Fetch review stats for all products
+    const productIds = productsData.map(p => p.id);
+    const { data: reviewsData, error: reviewsError } = await supabase
+      .from('reviews')
+      .select('product_id, rating')
+      .in('product_id', productIds);
+
+    if (reviewsError) {
+      console.error('Error fetching reviews:', reviewsError);
+      // Continue without reviews
+      setProducts(productsData);
+      return;
+    }
+
+    // Calculate review stats for each product
+    const productsWithReviews = productsData.map(product => {
+      const productReviews = reviewsData?.filter(r => r.product_id === product.id) || [];
+      const totalReviews = productReviews.length;
+      
+      let averageRating = 0;
+      if (totalReviews > 0) {
+        const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
+        averageRating = Math.round((totalRating / totalReviews) * 10) / 10;
+      }
+
+      return {
+        ...product,
+        total_reviews: totalReviews,
+        average_rating: averageRating
+      };
+    });
+
+    console.log('Products with reviews:', productsWithReviews);
+    setProducts(productsWithReviews);
+    
+  } catch (error) {
+    console.error('Error in fetchProductsWithReviews:', error);
+  }
+};
+
 
   const fetchSpecialOffers = async () => {
     try {
@@ -111,14 +153,13 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchProducts(), fetchSpecialOffers(), refreshProfile()]);
+    await Promise.all([fetchProductsWithReviews(), fetchSpecialOffers(), refreshProfile()]);
     setRefreshing(false);
   };
 
   useEffect(() => {
-    // Only fetch data if we have a profile (meaning user is authenticated)
     if (profile) {
-      Promise.all([fetchProducts(), fetchSpecialOffers()]).finally(() => {
+      Promise.all([fetchProductsWithReviews(), fetchSpecialOffers()]).finally(() => {
         setLoading(false);
       });
     } else {

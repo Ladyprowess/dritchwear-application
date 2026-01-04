@@ -57,6 +57,8 @@ export default function ProductModal({ product, visible, onClose, onOrderSuccess
   const [imagesLoading, setImagesLoading] = useState(false);
   const [reviewStats, setReviewStats] = useState<ReviewStats>({ averageRating: 0, totalReviews: 0 });
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+  const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
   // Fetch product images when modal opens
   useEffect(() => {
@@ -281,12 +283,23 @@ export default function ProductModal({ product, visible, onClose, onOrderSuccess
     );
   };
 
+  const openImagePreview = (index: number) => {
+    setPreviewImageIndex(index);
+    setImagePreviewVisible(true);
+  };
+
+  const closeImagePreview = () => {
+    setImagePreviewVisible(false);
+  };
+
   const renderImageItem = ({ item, index }: { item: ProductImage; index: number }) => (
-    <Image
-      source={{ uri: item.image_url }}
-      style={styles.galleryImage}
-      resizeMode="cover"
-    />
+    <Pressable onPress={() => openImagePreview(index)}>
+      <Image
+        source={{ uri: item.image_url }}
+        style={styles.galleryImage}
+        resizeMode="cover"
+      />
+    </Pressable>
   );
 
   // Get user's preferred currency
@@ -335,276 +348,321 @@ export default function ProductModal({ product, visible, onClose, onOrderSuccess
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
-      <SafeAreaView style={styles.container}>
-        {!product ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text>Product not found</Text>
-          </View>
-        ) : (
-          <>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Product Details</Text>
-              <Pressable style={styles.closeButton} onPress={handleClose}>
-                <X size={24} color="#1F2937" />
-              </Pressable>
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleClose}
+      >
+        <SafeAreaView style={styles.container}>
+          {!product ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Text>Product not found</Text>
             </View>
-
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-              {/* Product Image Gallery */}
-              <View style={styles.imageGalleryContainer}>
-                {productImages.length > 1 ? (
-                  <>
-                    <FlatList
-                      data={productImages}
-                      renderItem={renderImageItem}
-                      keyExtractor={(item) => item.id}
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      onMomentumScrollEnd={(event) => {
-                        const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
-                        setCurrentImageIndex(index);
-                      }}
-                      style={styles.imageGallery}
-                    />
-                    
-                    {/* Navigation Arrows */}
-                    {productImages.length > 1 && (
-                      <>
-                        <Pressable style={[styles.imageNavButton, styles.prevButton]} onPress={prevImage}>
-                          <ChevronLeft size={24} color="#FFFFFF" />
-                        </Pressable>
-                        <Pressable style={[styles.imageNavButton, styles.nextButton]} onPress={nextImage}>
-                          <ChevronRight size={24} color="#FFFFFF" />
-                        </Pressable>
-                      </>
-                    )}
-                    
-                    {/* Image Indicators */}
-                    <View style={styles.imageIndicators}>
-                      {productImages.map((_, index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.imageIndicator,
-                            index === currentImageIndex && styles.imageIndicatorActive
-                          ]}
-                        />
-                      ))}
-                    </View>
-                  </>
-                ) : (
-                  <Image
-                    source={{ uri: productImages[0]?.image_url || product.image_url }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                )}
+          ) : (
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.headerTitle}>Product Details</Text>
+                <Pressable style={styles.closeButton} onPress={handleClose}>
+                  <X size={24} color="#1F2937" />
+                </Pressable>
               </View>
 
-              {/* Product Info */}
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productPrice}>
-                  {formatCurrency(productPriceInUserCurrency, userCurrency)}
-                </Text>
-                
-                <View style={styles.ratingContainer}>
-                  {reviewStats.totalReviews > 0 ? (
+              <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                {/* Product Image Gallery */}
+                <View style={styles.imageGalleryContainer}>
+                  {productImages.length > 1 ? (
                     <>
-                      <View style={styles.starRating}>
-                        {renderStarRating(reviewStats.averageRating)}
+                      <FlatList
+                        data={productImages}
+                        renderItem={renderImageItem}
+                        keyExtractor={(item) => item.id}
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onMomentumScrollEnd={(event) => {
+                          const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+                          setCurrentImageIndex(index);
+                        }}
+                        style={styles.imageGallery}
+                      />
+                      
+                      {/* Navigation Arrows */}
+                      {productImages.length > 1 && (
+                        <>
+                          <Pressable style={[styles.imageNavButton, styles.prevButton]} onPress={prevImage}>
+                            <ChevronLeft size={24} color="#FFFFFF" />
+                          </Pressable>
+                          <Pressable style={[styles.imageNavButton, styles.nextButton]} onPress={nextImage}>
+                            <ChevronRight size={24} color="#FFFFFF" />
+                          </Pressable>
+                        </>
+                      )}
+                      
+                      {/* Image Indicators */}
+                      <View style={styles.imageIndicators}>
+                        {productImages.map((_, index) => (
+                          <View
+                            key={index}
+                            style={[
+                              styles.imageIndicator,
+                              index === currentImageIndex && styles.imageIndicatorActive
+                            ]}
+                          />
+                        ))}
                       </View>
-                      <Text style={styles.ratingText}>
-                        {reviewStats.averageRating} ({reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''})
-                      </Text>
                     </>
                   ) : (
-                    <>
-                      <Star size={16} color="#E5E7EB" fill="#E5E7EB" />
-                      <Text style={styles.ratingText}>No reviews yet</Text>
-                    </>
+                    <Pressable onPress={() => openImagePreview(0)}>
+                      <Image
+                        source={{ uri: productImages[0]?.image_url || product.image_url }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                      />
+                    </Pressable>
                   )}
                 </View>
 
-                <Text style={styles.productDescription}>{product.description}</Text>
-                <Text style={styles.stockText}>
-                  {product.stock > 0 ? `${product.stock} items in stock` : 'Out of stock'}
-                </Text>
-              </View>
-
-              {/* Size Selection - Only show if sizes are available */}
-              {sizesAvailable && (
-                <View style={styles.selectionSection}>
-                  <Text style={styles.selectionTitle}>
-                    Select Sizes ({selectedSizes.length} selected)
+                {/* Product Info */}
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productPrice}>
+                    {formatCurrency(productPriceInUserCurrency, userCurrency)}
                   </Text>
-                  <View style={styles.optionsGrid}>
-                    {product.sizes.map((size) => (
-                      <Pressable
-                        key={size}
-                        style={[
-                          styles.optionButton,
-                          selectedSizes.includes(size) && styles.optionButtonActive
-                        ]}
-                        onPress={() => toggleSize(size)}
-                      >
-                        {selectedSizes.includes(size) && (
-                          <Check size={16} color="#FFFFFF" style={styles.checkIcon} />
-                        )}
-                        <Text
-                          style={[
-                            styles.optionText,
-                            selectedSizes.includes(size) && styles.optionTextActive
-                          ]}
-                        >
-                          {size}
+                  
+                  <View style={styles.ratingContainer}>
+                    {reviewStats.totalReviews > 0 ? (
+                      <>
+                        <View style={styles.starRating}>
+                          {renderStarRating(reviewStats.averageRating)}
+                        </View>
+                        <Text style={styles.ratingText}>
+                          {reviewStats.averageRating} ({reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''})
                         </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Color Selection - Only show if colors are available */}
-              {colorsAvailable && (
-                <View style={styles.selectionSection}>
-                  <Text style={styles.selectionTitle}>
-                    Select Colors ({selectedColors.length} selected)
-                  </Text>
-                  <View style={styles.optionsGrid}>
-                    {product.colors.map((color) => (
-                      <Pressable
-                        key={color}
-                        style={[
-                          styles.optionButton,
-                          selectedColors.includes(color) && styles.optionButtonActive
-                        ]}
-                        onPress={() => toggleColor(color)}
-                      >
-                        {selectedColors.includes(color) && (
-                          <Check size={16} color="#FFFFFF" style={styles.checkIcon} />
-                        )}
-                        <Text
-                          style={[
-                            styles.optionText,
-                            selectedColors.includes(color) && styles.optionTextActive
-                          ]}
-                        >
-                          {color}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Quantity Selection */}
-              <View style={styles.selectionSection}>
-                <Text style={styles.selectionTitle}>Quantity</Text>
-                <View style={styles.quantityContainer}>
-                  <Pressable
-                    style={styles.quantityButton}
-                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    <Minus size={20} color="#7C3AED" />
-                  </Pressable>
-                  <Text style={styles.quantityText}>{quantity}</Text>
-                  <Pressable
-                    style={styles.quantityButton}
-                    onPress={() => setQuantity(quantity + 1)}
-                  >
-                    <Plus size={20} color="#7C3AED" />
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Selection Summary - Only show if selections are made or no options available */}
-              {(selectedSizes.length > 0 || selectedColors.length > 0 || (!sizesAvailable && !colorsAvailable)) && (
-                <View style={styles.summarySection}>
-                  <Text style={styles.summaryTitle}>Selection Summary</Text>
-                  <Text style={styles.summaryText}>
-                    {sizesAvailable && colorsAvailable 
-                      ? `${selectedSizes.length * selectedColors.length} combinations will be added to cart`
-                      : sizesAvailable 
-                        ? `${selectedSizes.length} size${selectedSizes.length > 1 ? 's' : ''} will be added to cart`
-                        : colorsAvailable
-                          ? `${selectedColors.length} color${selectedColors.length > 1 ? 's' : ''} will be added to cart`
-                          : '1 item will be added to cart'
-                    }
-                  </Text>
-                  <Text style={styles.summaryPrice}>
-                    Total: {formatCurrency(
-                      productPriceInUserCurrency * quantity * Math.max(
-                        (sizesAvailable ? selectedSizes.length : 1) * (colorsAvailable ? selectedColors.length : 1),
-                        1
-                      ), 
-                      userCurrency
+                      </>
+                    ) : (
+                      <>
+                        <Star size={16} color="#E5E7EB" fill="#E5E7EB" />
+                        <Text style={styles.ratingText}>No reviews yet</Text>
+                      </>
                     )}
+                  </View>
+
+                  <Text style={styles.productDescription}>{product.description}</Text>
+                  <Text style={styles.stockText}>
+                    {product.stock > 0 ? `${product.stock} items in stock` : 'Out of stock'}
                   </Text>
                 </View>
-              )}
 
-              {/* Product Reviews */}
-              <View style={styles.reviewsSection}>
-                <ProductReviews 
-                  productId={product.id} 
-                  onReviewsUpdate={() => {
-                    // Refresh review stats when reviews are updated
-                    fetchReviewStats();
-                  }}
-                />
+                {/* Size Selection - Only show if sizes are available */}
+                {sizesAvailable && (
+                  <View style={styles.selectionSection}>
+                    <Text style={styles.selectionTitle}>
+                      Select Sizes ({selectedSizes.length} selected)
+                    </Text>
+                    <View style={styles.optionsGrid}>
+                      {product.sizes.map((size) => (
+                        <Pressable
+                          key={size}
+                          style={[
+                            styles.optionButton,
+                            selectedSizes.includes(size) && styles.optionButtonActive
+                          ]}
+                          onPress={() => toggleSize(size)}
+                        >
+                          {selectedSizes.includes(size) && (
+                            <Check size={16} color="#FFFFFF" style={styles.checkIcon} />
+                          )}
+                          <Text
+                            style={[
+                              styles.optionText,
+                              selectedSizes.includes(size) && styles.optionTextActive
+                            ]}
+                          >
+                            {size}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Color Selection - Only show if colors are available */}
+                {colorsAvailable && (
+                  <View style={styles.selectionSection}>
+                    <Text style={styles.selectionTitle}>
+                      Select Colors ({selectedColors.length} selected)
+                    </Text>
+                    <View style={styles.optionsGrid}>
+                      {product.colors.map((color) => (
+                        <Pressable
+                          key={color}
+                          style={[
+                            styles.optionButton,
+                            selectedColors.includes(color) && styles.optionButtonActive
+                          ]}
+                          onPress={() => toggleColor(color)}
+                        >
+                          {selectedColors.includes(color) && (
+                            <Check size={16} color="#FFFFFF" style={styles.checkIcon} />
+                          )}
+                          <Text
+                            style={[
+                              styles.optionText,
+                              selectedColors.includes(color) && styles.optionTextActive
+                            ]}
+                          >
+                            {color}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Quantity Selection */}
+                <View style={styles.selectionSection}>
+                  <Text style={styles.selectionTitle}>Quantity</Text>
+                  <View style={styles.quantityContainer}>
+                    <Pressable
+                      style={styles.quantityButton}
+                      onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                    >
+                      <Minus size={20} color="#7C3AED" />
+                    </Pressable>
+                    <Text style={styles.quantityText}>{quantity}</Text>
+                    <Pressable
+                      style={styles.quantityButton}
+                      onPress={() => setQuantity(quantity + 1)}
+                    >
+                      <Plus size={20} color="#7C3AED" />
+                    </Pressable>
+                  </View>
+                </View>
+
+                {/* Selection Summary - Only show if selections are made or no options available */}
+                {(selectedSizes.length > 0 || selectedColors.length > 0 || (!sizesAvailable && !colorsAvailable)) && (
+                  <View style={styles.summarySection}>
+                    <Text style={styles.summaryTitle}>Selection Summary</Text>
+                    <Text style={styles.summaryText}>
+                      {sizesAvailable && colorsAvailable 
+                        ? `${selectedSizes.length * selectedColors.length} combinations will be added to cart`
+                        : sizesAvailable 
+                          ? `${selectedSizes.length} size${selectedSizes.length > 1 ? 's' : ''} will be added to cart`
+                          : colorsAvailable
+                            ? `${selectedColors.length} color${selectedColors.length > 1 ? 's' : ''} will be added to cart`
+                            : '1 item will be added to cart'
+                      }
+                    </Text>
+                    <Text style={styles.summaryPrice}>
+                      Total: {formatCurrency(
+                        productPriceInUserCurrency * quantity * Math.max(
+                          (sizesAvailable ? selectedSizes.length : 1) * (colorsAvailable ? selectedColors.length : 1),
+                          1
+                        ), 
+                        userCurrency
+                      )}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Product Reviews */}
+                <View style={styles.reviewsSection}>
+                  <ProductReviews 
+                    productId={product.id} 
+                    onReviewsUpdate={() => {
+                      // Refresh review stats when reviews are updated
+                      fetchReviewStats();
+                    }}
+                  />
+                </View>
+              </ScrollView>
+
+              {/* Add to Cart Button */}
+              <View style={styles.bottomSection}>
+                <Pressable
+                  style={[
+                    styles.addToCartButton,
+                    ((sizesAvailable && selectedSizes.length === 0) || 
+                     (colorsAvailable && selectedColors.length === 0) || 
+                     loading) && styles.addToCartButtonDisabled
+                  ]}
+                  onPress={handleAddToCart}
+                  disabled={(sizesAvailable && selectedSizes.length === 0) || 
+                           (colorsAvailable && selectedColors.length === 0) || 
+                           loading}
+                >
+                  <ShoppingCart size={20} color="#FFFFFF" />
+                  <Text style={styles.addToCartText}>
+                    {loading ? 'Adding...' : `Add to Cart (${
+                      sizesAvailable && colorsAvailable 
+                        ? selectedSizes.length * selectedColors.length
+                        : sizesAvailable 
+                          ? selectedSizes.length
+                          : colorsAvailable
+                            ? selectedColors.length
+                            : 1
+                    } item${
+                      (sizesAvailable && colorsAvailable 
+                        ? selectedSizes.length * selectedColors.length
+                        : sizesAvailable 
+                          ? selectedSizes.length
+                          : colorsAvailable
+                            ? selectedColors.length
+                            : 1
+                      ) > 1 ? 's' : ''
+                    })`}
+                  </Text>
+                </Pressable>
               </View>
-            </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
+      </Modal>
 
-            {/* Add to Cart Button */}
-            <View style={styles.bottomSection}>
-              <Pressable
-                style={[
-                  styles.addToCartButton,
-                  ((sizesAvailable && selectedSizes.length === 0) || 
-                   (colorsAvailable && selectedColors.length === 0) || 
-                   loading) && styles.addToCartButtonDisabled
-                ]}
-                onPress={handleAddToCart}
-                disabled={(sizesAvailable && selectedSizes.length === 0) || 
-                         (colorsAvailable && selectedColors.length === 0) || 
-                         loading}
-              >
-                <ShoppingCart size={20} color="#FFFFFF" />
-                <Text style={styles.addToCartText}>
-                  {loading ? 'Adding...' : `Add to Cart (${
-                    sizesAvailable && colorsAvailable 
-                      ? selectedSizes.length * selectedColors.length
-                      : sizesAvailable 
-                        ? selectedSizes.length
-                        : colorsAvailable
-                          ? selectedColors.length
-                          : 1
-                  } item${
-                    (sizesAvailable && colorsAvailable 
-                      ? selectedSizes.length * selectedColors.length
-                      : sizesAvailable 
-                        ? selectedSizes.length
-                        : colorsAvailable
-                          ? selectedColors.length
-                          : 1
-                    ) > 1 ? 's' : ''
-                  })`}
-                </Text>
+      {/* Image Preview Modal */}
+      <Modal
+        visible={imagePreviewVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={closeImagePreview}
+      >
+        <View style={styles.previewModalOverlay}>
+          <Pressable style={styles.previewCloseArea} onPress={closeImagePreview}>
+            <View style={styles.previewHeader}>
+              <Pressable style={styles.previewCloseButton} onPress={closeImagePreview}>
+                <X size={24} color="#FFFFFF" />
               </Pressable>
             </View>
-          </>
-        )}
-      </SafeAreaView>
-    </Modal>
+          </Pressable>
+          
+          <View style={styles.previewImageContainer}>
+            <FlatList
+              data={productImages}
+              renderItem={({ item }) => (
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.previewImage}
+                  resizeMode="contain"
+                />
+              )}
+              keyExtractor={(item) => item.id}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={previewImageIndex}
+              getItemLayout={(data, index) => ({
+                length: screenWidth,
+                offset: screenWidth * index,
+                index,
+              })}
+            />
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -846,5 +904,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
+  },
+  previewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  previewCloseArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  previewHeader: {
+    padding: 16,
+    paddingTop: 50,
+    alignItems: 'flex-end',
+  },
+  previewCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: screenWidth,
+    height: '100%',
   },
 });
