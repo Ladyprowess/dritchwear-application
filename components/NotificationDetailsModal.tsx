@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Package, Gift, CircleAlert as AlertCircle, Bell, Calendar, User } from 'lucide-react-native';
+import { X, Package, Gift, CircleAlert as AlertCircle, Bell, Calendar, User, MessageCircle } from 'lucide-react-native';
+
 import { useRouter } from 'expo-router';
 
 interface Notification {
@@ -120,6 +121,33 @@ export default function NotificationDetailsModal({
     handleClose();
     router.push('/(customer)/shop');
   };
+  // ✅ Extract Ticket ID from support notification message
+  const extractTicketCode = (message: string): string | null => {
+    const match = message.match(/Ticket:\s*(DRW-\d+)/i);
+return match?.[1] || null;
+
+  }
+  
+  
+
+// ✅ Detect support notification
+const isSupportNotification = () => {
+  const t = (notification.title || '').toLowerCase();
+  const m = (notification.message || '').toLowerCase();
+  return t.includes('support') || m.includes('ticket:') || m.includes('support reply');
+};
+
+
+
+
+const handleViewSupport = () => {
+  const ticketCode = extractTicketCode(notification.message);
+
+  handleClose();
+  router.push(`/(customer)/help-support?ticket=${ticketCode || ''}`);
+};
+
+
   return (
     <Modal
       visible={visible}
@@ -230,6 +258,18 @@ export default function NotificationDetailsModal({
               </View>
             </View>
           )}
+          {notification.type === 'custom' && isSupportNotification() && (
+  <View style={styles.actionSection}>
+    <Text style={styles.actionTitle}>Quick Actions</Text>
+    <View style={styles.actionButtons}>
+      <Pressable style={styles.actionButton} onPress={handleViewSupport}>
+        <MessageCircle size={16} color="#7C3AED" />
+        <Text style={styles.actionButtonText}>View Support</Text>
+      </Pressable>
+    </View>
+  </View>
+)}
+
         </ScrollView>
 
         {/* Bottom Actions */}

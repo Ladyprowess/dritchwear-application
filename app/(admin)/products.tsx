@@ -473,47 +473,54 @@ export default function AdminProductsScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color="#9CA3AF" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search products..."
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-      </View>
-
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
       >
-        {allCategories.map((category) => (
-          <Pressable
-            key={category}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category && styles.categoryChipActive
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Text
-              style={[
-                styles.categoryText,
-                selectedCategory === category && styles.categoryTextActive
-              ]}
-            >
-              {category}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={20} color="#9CA3AF" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+        </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesContainer}
+          contentContainerStyle={styles.categoriesContent}
+          nestedScrollEnabled
+        >
+          {allCategories.map((category) => (
+            <Pressable
+              key={category}
+              style={[
+                styles.categoryChip,
+                selectedCategory === category && styles.categoryChipActive
+              ]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === category && styles.categoryTextActive
+                ]}
+              >
+                {category}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading products...</Text>
@@ -527,14 +534,14 @@ export default function AdminProductsScreen() {
             <Package size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No Products Found</Text>
             <Text style={styles.emptySubtitle}>
-              {searchQuery || selectedCategory !== 'All' 
+              {searchQuery || selectedCategory !== 'All'
                 ? 'No products match your search criteria'
-                : 'Start by adding your first product'
-              }
+                : 'Start by adding your first product'}
             </Text>
           </View>
         )}
       </ScrollView>
+
 
       <ProductDetailsModal
         product={selectedProduct}
@@ -1110,6 +1117,7 @@ const styles = StyleSheet.create({
   categoryOptionTextActive: {
     color: '#FFFFFF',
   },
+  
   imagePreview: {
     width: '100%',
     height: 120,

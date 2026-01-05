@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Modal, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { 
@@ -22,6 +22,7 @@ import SupportTicketModal from '@/components/SupportTicketModal';
 
 interface SupportTicket {
   id: string;
+  ticket_code: string;
   subject: string;
   description: string;
   status: 'open' | 'in_progress' | 'waiting_customer' | 'resolved' | 'closed';
@@ -89,6 +90,7 @@ const contactMethods = [
 
 export default function HelpSupportScreen() {
   const router = useRouter();
+  const { ticket } = useLocalSearchParams<{ ticket?: string }>();
   const { user } = useAuth();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -104,11 +106,25 @@ export default function HelpSupportScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      fetchTickets();
-      fetchCategories();
+    if (!user) return;
+  
+    fetchTickets();
+    fetchCategories();
+  }, [user?.id]);
+  
+
+  useEffect(() => {
+    if (!ticket) return;
+    if (!tickets.length) return;
+  
+    const match = tickets.find((t) => t.ticket_code === ticket);
+  
+    if (match) {
+      setSelectedTicket(match);
+      setShowTicketModal(true);
     }
-  }, [user]);
+  }, [ticket, tickets]);
+  
 
   const fetchTickets = async () => {
     if (!user) return;
@@ -118,14 +134,17 @@ export default function HelpSupportScreen() {
         .from('support_tickets')
         .select(`
           id,
+          ticket_code,
+          user_id,
           subject,
           description,
           status,
           priority,
           last_message_at,
           created_at,
+          profiles!support_tickets_user_id_fkey(full_name, email),
           support_categories(name)
-        `)
+        `)        
         .eq('user_id', user.id)
         .order('last_message_at', { ascending: false });
 
@@ -185,10 +204,13 @@ export default function HelpSupportScreen() {
     setSubmitting(true);
 
     try {
+      const ticketCode = `DRW-${Math.floor(1000 + Math.random() * 9000)}`;
+
       const { error } = await supabase
         .from('support_tickets')
         .insert({
           user_id: user.id,
+          ticket_code: ticketCode,
           subject: newTicketForm.subject.trim(),
           description: newTicketForm.description.trim(),
           category_id: newTicketForm.category_id || null,
@@ -277,7 +299,10 @@ export default function HelpSupportScreen() {
         <Text style={styles.headerTitle}>Help & Support</Text>
         <Pressable 
           style={styles.newTicketButton}
-          onPress={() => setShowNewTicketModal(true)}
+          onPress={() => {
+            setShowNewTicketModal(true);
+            fetchCategories();
+          }}          
         >
           <Plus size={20} color="#FFFFFF" />
         </Pressable>

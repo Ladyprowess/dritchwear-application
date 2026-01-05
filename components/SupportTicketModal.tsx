@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface SupportTicket {
   id: string;
+  ticket_code: string | null; 
   user_id: string;
   subject: string;
   description: string;
@@ -30,6 +31,7 @@ interface SupportTicket {
 
 interface SupportMessage {
   id: string;
+  ticket_code: string;
   ticket_id: string;
   sender_id: string;
   message: string;
@@ -87,6 +89,7 @@ export default function SupportTicketModal({ ticket, visible, onClose, onUpdate 
         .from('support_messages')
         .select(`
           id,
+          ticket_code,
           ticket_id,
           sender_id,
           message,
@@ -121,12 +124,32 @@ export default function SupportTicketModal({ ticket, visible, onClose, onUpdate 
         .from('support_messages')
         .insert({
           ticket_id: ticket.id,
+          ticket_code: ticket.ticket_code,
           sender_id: user.id,
           message: newMessage.trim(),
           is_internal: false,
         });
 
       if (error) throw error;
+
+      // ✅ Only notify customer when ADMIN replies
+// ✅ Only notify customer when ADMIN replies
+if (isAdmin) {
+  const safeTicketCode = ticket.ticket_code || `SUP-${ticket.id.slice(0, 6)}`;
+
+  await supabase.from('notifications').insert({
+    user_id: ticket.user_id,
+    title: 'New support message',
+    message: `You have a new support reply.\nTicket: ${ticket.ticket_code}`,
+    type: 'custom',
+    is_read: false,
+  });
+}
+
+
+      
+      
+
 
       setNewMessage('');
       await fetchMessages();

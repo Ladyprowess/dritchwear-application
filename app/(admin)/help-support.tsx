@@ -17,6 +17,7 @@ import SupportTicketModal from '@/components/SupportTicketModal';
 
 interface SupportTicket {
   id: string;
+  ticket_code: string;
   user_id: string;
   subject: string;
   description: string;
@@ -66,6 +67,7 @@ export default function AdminHelpSupportScreen() {
         .from('support_tickets')
         .select(`
           id,
+          ticket_code,
           user_id,
           subject,
           description,
@@ -75,7 +77,7 @@ export default function AdminHelpSupportScreen() {
           created_at,
           profiles!support_tickets_user_id_fkey(full_name, email),
           support_categories(name)
-        `)
+        `)        
         .order('last_message_at', { ascending: false });
 
       if (selectedStatus !== 'all') {
