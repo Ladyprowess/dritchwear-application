@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency } from '@/lib/currency';
+import { smartBack } from '@/lib/navigation';
 
 interface AnalyticsData {
   totalRevenue: number;
@@ -386,9 +387,13 @@ export default function AnalyticsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#1F2937" />
-        </Pressable>
+      <Pressable
+  style={styles.backButton}
+  onPress={() => router.replace('/(admin)/settings')}
+>
+  <ArrowLeft size={24} color="#1F2937" />
+</Pressable>
+
         <Text style={styles.headerTitle}>Analytics Dashboard</Text>
         <View style={styles.placeholder} />
       </View>

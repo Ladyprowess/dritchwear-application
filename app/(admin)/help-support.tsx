@@ -14,6 +14,7 @@ import {
   Search
 } from 'lucide-react-native';
 import SupportTicketModal from '@/components/SupportTicketModal';
+import { smartBack } from '@/lib/navigation';
 
 interface SupportTicket {
   id: string;
@@ -242,7 +243,10 @@ export default function AdminHelpSupportScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.replace('/(admin)/settings')}
+        >
           <ArrowLeft size={24} color="#1F2937" />
         </Pressable>
         <Text style={styles.headerTitle}>Help & Support</Text>

@@ -241,7 +241,10 @@ export default function SpecialOffersScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.replace('/(admin)/settings')}
+        >
           <ArrowLeft size={24} color="#1F2937" />
         </Pressable>
         <Text style={styles.headerTitle}>Special Offers</Text>

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Calendar, Globe } from 'lucide-react-native';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
+import { smartBack } from '@/lib/navigation';
 
 interface Transaction {
   id: string;
@@ -203,9 +204,14 @@ export default function WalletHistoryScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#1F2937" />
-        </Pressable>
+      <Pressable
+  style={styles.backButton}
+  onPress={() => router.replace('/(customer)/profile')}
+>
+  <ArrowLeft size={24} color="#1F2937" />
+</Pressable>
+
+
         <Text style={styles.headerTitle}>Wallet History</Text>
         <View style={styles.placeholder} />
       </View>
