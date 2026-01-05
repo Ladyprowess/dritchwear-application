@@ -192,8 +192,10 @@ export default function CheckoutScreen() {
           order_status: 'pending',
           delivery_address: deliveryAddress.trim(),
           currency: 'NGN',
-          promo_code_id: appliedPromo?.promoId || null, // Changed: Store promo ID instead of code
-          discount_amount: discountAmount,
+          promo_code: appliedPromo?.code || null,
+promo_code_id: appliedPromo?.promoId || null,
+discount_amount: discountAmount,
+
         })
         .select()
         .single();
@@ -299,7 +301,9 @@ export default function CheckoutScreen() {
           delivery_address: orderData.delivery_address,
           currency: orderData.currency,
           original_amount: orderData.original_amount,
-          promo_code_id: orderData.appliedPromo?.promoId || null, // Changed: Store promo ID instead of code
+          promo_code: orderData.appliedPromo?.code || null,
+promo_code_id: orderData.appliedPromo?.promoId || null,
+
           discount_amount: orderData.discountAmount || 0,
         })
         .select()

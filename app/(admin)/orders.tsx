@@ -12,6 +12,8 @@ interface Order {
   total: number;
   order_status: string;
   payment_status: string;
+  promo_code: string;
+  discount_amount: number;
   created_at: string;
   currency?: string;
   original_amount?: number;
@@ -83,18 +85,19 @@ export default function AdminOrdersScreen() {
           subtotal,
           service_fee,
           delivery_fee,
+          total,
+          currency,
+          original_amount,
           promo_code,
           discount_amount,
-          total,
           payment_method,
           payment_status,
           order_status,
           delivery_address,
           created_at,
-          currency,
-          original_amount,
-          profiles!inner(full_name, email, wallet_balance, preferred_currency)
+          profiles:profiles(full_name,email,wallet_balance,preferred_currency)
         `)
+        
         .order('created_at', { ascending: false });
 
       // Fetch custom requests with invoices
@@ -137,20 +140,18 @@ const normalisedOrders = (ordersData || []).map((o: any) => ({
 
 setOrders(normalisedOrders);
 
-      if (customData) setCustomRequests(customData);
+const allItems = [
+  ...normalisedOrders,
+  ...(customData || [])
+];
 
-      // Combine and filter
-      const allItems = [
-        ...(ordersData || []),
-        ...(customData || [])
-      ];
+filterOrders(allItems, selectedStatus, searchQuery);
       
-      filterOrders(allItems, selectedStatus, searchQuery);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
-    }
+} catch (err) {
+  console.error('Error fetching orders:', err);
+} finally {
+  setLoading(false);
+}
   };
 
   const filterOrders = (ordersList: (Order | CustomRequest)[], filter: string, search: string) => {

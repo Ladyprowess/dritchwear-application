@@ -20,6 +20,8 @@ interface Order {
   total: number;
   payment_method?: string;
   payment_status?: string;
+  promo_code: string;
+  discount_amount: number;
   order_status?: string;
   delivery_address?: string;
   created_at: string;

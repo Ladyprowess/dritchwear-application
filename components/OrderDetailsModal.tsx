@@ -91,6 +91,11 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
+  // 👇 ADD THESE 3 LINES HERE (after the useState hooks)
+  console.log('📦 ORDER DATA:', order);
+  console.log('💰 DISCOUNT AMOUNT:', order?.discount_amount);
+  console.log('🏷️ PROMO CODE:', order?.promo_code);
+
   const downloadImage = async (imageUrl: string) => {
     try {
       // Request only the necessary permissions (no audio)
@@ -446,18 +451,20 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
                   </View>
                 </View>
 
-                {/* Promo Code (if applied) */}
-                {!isCustomOrder && order.promo_code && isAdmin && (
-                  <View style={styles.infoRow}>
-                    <Tag size={20} color="#10B981" />
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Promo Code</Text>
-                      <Text style={[styles.infoValue, { color: '#10B981' }]}>
-                      {order.promo_code} ({formatAmountInPaymentCurrency(order.discount_amount ?? 0)} discount)
-                      </Text>
-                    </View>
-                  </View>
-                )}
+              
+                {/* Promo Code (if applied) - Show for admin on regular orders */}
+                {/* Promo Code (if applied) - Show for EVERYONE on regular orders */}
+{!isCustomOrder && order.promo_code && order.discount_amount && order.discount_amount > 0 && (
+  <View style={styles.infoRow}>
+    <Tag size={20} color="#10B981" />
+    <View style={styles.infoContent}>
+      <Text style={styles.infoLabel}>Promo Code</Text>
+      <Text style={[styles.infoValue, { color: '#10B981' }]}>
+        {order.promo_code} ({formatAmountInPaymentCurrency(order.discount_amount)} discount)
+      </Text>
+    </View>
+  </View>
+)}
 
                 {/* Show invoice status for custom orders */}
                 {isCustomOrder && (
