@@ -35,6 +35,8 @@ interface Order {
   original_amount?: number;
   promo_code?: string;
   discount_amount?: number;
+  notes?: string | null;
+description?: string | null;
   profiles?: {
     full_name: string;
     email: string;
@@ -498,6 +500,8 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
               </View>
             </View>
 
+          
+
             {/* Current Status Display (for all users) */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Order Status</Text>
@@ -731,6 +735,20 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
     </Text>
   </View>
 )}
+
+{/* Order Description / Notes (Regular Orders) */}
+{!isCustomOrder && (order.notes || order.description) && (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Order Note</Text>
+
+    <View style={styles.summaryCard}>
+      <Text style={{ fontSize: 14, fontFamily: 'Inter-Regular', color: '#374151', lineHeight: 20 }}>
+        {(order.notes || order.description)?.toString()}
+      </Text>
+    </View>
+  </View>
+)}
+
 
                     
                     <View style={styles.summaryRow}>

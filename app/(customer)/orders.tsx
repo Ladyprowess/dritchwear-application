@@ -20,8 +20,9 @@ interface Order {
   total: number;
   payment_method?: string;
   payment_status?: string;
-  promo_code: string;
-  discount_amount: number;
+  promo_code?: string | null;
+discount_amount?: number | null;
+notes?: string | null;
   order_status?: string;
   delivery_address?: string;
   created_at: string;
@@ -572,6 +573,12 @@ export default function CustomerOrdersScreen() {
               {isCustom ? item.title : orderNumber}
             </Text>
             <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+            {!isCustom && item.notes ? (
+  <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }} numberOfLines={1}>
+    Note: {item.notes}
+  </Text>
+) : null}
+
           </View>
           
           <View style={styles.orderRight}>

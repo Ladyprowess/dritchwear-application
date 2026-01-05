@@ -90,6 +90,8 @@ export default function AdminOrdersScreen() {
           original_amount,
           promo_code,
           discount_amount,
+          notes,
+          description,
           payment_method,
           payment_status,
           order_status,

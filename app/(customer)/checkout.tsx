@@ -24,6 +24,8 @@ export default function CheckoutScreen() {
   const [showPaystack, setShowPaystack] = useState(false);
   const [showPayPal, setShowPayPal] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+  const [orderNote, setOrderNote] = useState('');
+
 
   useEffect(() => {
     if (cartData) {
@@ -138,6 +140,9 @@ export default function CheckoutScreen() {
           original_amount: paymentAmount,
           appliedPromo,
           discountAmount: discountNGN,
+          notes: orderNote.trim() || null,
+description: orderNote.trim() || null,
+
         };
 
         setOrderData(orderInfo);
@@ -195,6 +200,7 @@ export default function CheckoutScreen() {
           promo_code: appliedPromo?.code || null,
 promo_code_id: appliedPromo?.promoId || null,
 discount_amount: discountAmount,
+notes: orderNote.trim() || null,
 
         })
         .select()
@@ -305,6 +311,7 @@ discount_amount: discountAmount,
 promo_code_id: orderData.appliedPromo?.promoId || null,
 
           discount_amount: orderData.discountAmount || 0,
+          notes: orderNote.trim() || null,
         })
         .select()
         .single();
@@ -485,6 +492,24 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
               </View>
             </View>
           </View>
+
+          {/* Order Description / Note */}
+<View style={styles.section}>
+  <Text style={styles.sectionTitle}>Order Description (Optional)</Text>
+
+  <View style={styles.addressCard}>
+    <TextInput
+      style={styles.addressInput}
+      value={orderNote}
+      onChangeText={setOrderNote}
+      placeholder="Add a note for your order (e.g. delivery instructions, packaging request, etc.)"
+      placeholderTextColor="#9CA3AF"
+      multiline
+      numberOfLines={3}
+    />
+  </View>
+</View>
+
 
           {/* Payment Methods */}
           <View style={styles.section}>
