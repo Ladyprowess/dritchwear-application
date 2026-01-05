@@ -55,15 +55,16 @@ export async function savePushTokenToDatabase(
     const deviceType = Platform.OS === 'ios' ? 'ios' : 'android';
 
     const { error } = await supabase
-      .from('push_tokens')
-      .upsert(
-        {
-          user_id: userId,
-          token,
-          device_type: deviceType,
-        },
-        { onConflict: 'token' }
-      );
+  .from('push_tokens')
+  .upsert(
+    {
+      user_id: userId,
+      token,
+      device_type: deviceType,
+    },
+    { onConflict: 'user_id' }
+  );
+
 
     if (error) {
       console.error('Error saving push token to database:', error);

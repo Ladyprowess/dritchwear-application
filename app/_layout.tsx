@@ -17,6 +17,8 @@ import {
   setupNotificationListeners,
   cleanupNotificationListeners,
 } from '@/lib/pushNotifications';
+import Constants from 'expo-constants';
+
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
@@ -40,14 +42,19 @@ function PushNotificationSetup() {
   } | null>(null);
 
   useEffect(() => {
-    // Always cleanup previous listeners first (prevents duplicates)
     if (listenersRef.current) {
       cleanupNotificationListeners(listenersRef.current);
       listenersRef.current = null;
     }
-
+  
     if (!user?.id) return;
-
+  
+    // 🚫 Skip push registration in Expo Go
+    if (Constants.appOwnership === 'expo') {
+      console.log('ℹ️ Skipping push registration in Expo Go');
+      return;
+    }
+  
     // 1) Register and save token
     (async () => {
       const token = await registerForPushNotificationsAsync();
@@ -55,20 +62,17 @@ function PushNotificationSetup() {
         await savePushTokenToDatabase(user.id, token);
       }
     })();
-
+  
     // 2) Setup listeners
     const listeners = setupNotificationListeners(
       (notification) => {
         console.log('📱 Notification received:', notification.request.content.title);
-
-        // OPTIONAL: if user is already on notifications page, you can trigger a refresh
-        // We'll do it via router params (simple approach)
         router.setParams({ refresh: String(Date.now()) });
       },
       (response) => {
         const data: any = response.notification.request.content.data || {};
         const type = String(data.type || '');
-
+  
         if (type === 'order') {
           router.push('/(customer)/orders');
         } else if (type === 'promo') {
@@ -78,9 +82,9 @@ function PushNotificationSetup() {
         }
       }
     );
-
+  
     listenersRef.current = listeners;
-
+  
     return () => {
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
@@ -88,7 +92,7 @@ function PushNotificationSetup() {
       }
     };
   }, [user?.id]);
-
+  
   return null;
 }
 
