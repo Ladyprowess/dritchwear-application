@@ -40,28 +40,34 @@ export default function CartScreen() {
     }
   }, [appliedPromo?.promoId, profile?.id]);
 
-  const validateExistingPromo = async () => {
-    if (!appliedPromo || !profile?.id) return;
+  // In cart.tsx, replace the validateExistingPromo function:
 
-    setValidatingPromo(true);
-    try {
-      // Check if user has used this promo in any completed order
-      const hasUsed = await checkPromoUsage(appliedPromo.promoId, profile.id);
+const validateExistingPromo = async () => {
+  if (!appliedPromo || !profile?.id) return;
+
+  setValidatingPromo(true);
+  try {
+    // Check if user has used this promo in any completed order
+    const hasUsed = await checkPromoUsage(appliedPromo.promoId, profile.id);
+    
+    if (hasUsed) {
+      // CRITICAL: Remove the promo immediately from context
+      await setAppliedPromo(null);
       
-      if (hasUsed) {
-        // Remove the promo silently
-        await setAppliedPromo(null);
-        setPromoError('Your previously applied promo code has already been used');
-        
-        // Clear error after 5 seconds
-        setTimeout(() => setPromoError(''), 5000);
-      }
-    } catch (error) {
-      console.error('Error validating existing promo:', error);
-    } finally {
-      setValidatingPromo(false);
+      // Show error message
+      setPromoError('This promo code has already been used and cannot be applied again');
+      
+      // Clear error after 5 seconds
+      setTimeout(() => setPromoError(''), 5000);
     }
-  };
+  } catch (error) {
+    console.error('Error validating existing promo:', error);
+    // On error, also clear the promo to be safe
+    await setAppliedPromo(null);
+  } finally {
+    setValidatingPromo(false);
+  }
+};
 
   // Check if user has already used this promo code in any completed order
   const checkPromoUsage = async (promoId: string, userId: string) => {
@@ -240,22 +246,35 @@ export default function CartScreen() {
     return getSubtotalInUserCurrency() - calculateDiscount();
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (items.length === 0) {
       Alert.alert('Empty Cart', 'Your cart is empty. Add some items before checkout.');
       return;
     }
+  
+    // Re-validate promo before checkout
+    if (appliedPromo && profile?.id) {
+      const hasUsed = await checkPromoUsage(appliedPromo.promoId, profile.id);
+      if (hasUsed) {
+        // Clear invalid promo
+        await setAppliedPromo(null);
+        Alert.alert(
+          'Promo Code Invalid', 
+          'The promo code has already been used and has been removed from your cart.'
+        );
+        return;
+      }
+    }
     
-    // Navigate to checkout with cart data and promo info
+    // Navigate to checkout with cart data and promo info (only if promo is valid)
     router.push({
       pathname: '/(customer)/checkout',
       params: { 
-        cartData: JSON.stringify(items),
-        promoData: appliedPromo ? JSON.stringify(appliedPromo) : undefined
+        cartData: JSON.stringify(items)
       }
     });
+    
   };
-
   if (items.length === 0) {
     return (
       <SafeAreaView style={styles.container}>

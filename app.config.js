@@ -28,8 +28,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
   },
   android: {
-    package: 'com.dritchwear.app',           
-    versionCode: 10,                          
+    package: 'com.dritchwear.app',
+    googleServicesFile: './google-services.json', // ✅ ADD THIS LINE
+    versionCode: 10,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',

@@ -43,34 +43,39 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 }
 
-export async function savePushTokenToDatabase(userId: string, token: string): Promise<void> {
-  try {
-    const { data: existingToken } = await supabase
-      .from('push_tokens')
-      .select('id')
-      .eq('token', token)
-      .maybeSingle();
 
-    if (!existingToken) {
-      const deviceType = Platform.OS === 'ios' ? 'ios' : 'android';
-      const { error } = await supabase
-        .from('push_tokens')
-        .insert({
+
+export async function savePushTokenToDatabase(
+  userId: string,
+  token: string
+): Promise<void> {
+  try {
+    console.log("🧾 saving token for userId:", userId); // ✅ CORRECT
+
+    const deviceType = Platform.OS === 'ios' ? 'ios' : 'android';
+
+    const { error } = await supabase
+      .from('push_tokens')
+      .upsert(
+        {
           user_id: userId,
           token,
           device_type: deviceType,
-        });
+        },
+        { onConflict: 'token' }
+      );
 
-      if (error) {
-        console.error('Error saving push token to database:', error);
-      } else {
-        console.log('✅ Push token saved successfully');
-      }
+    if (error) {
+      console.error('Error saving push token to database:', error);
+    } else {
+      console.log('✅ Push token saved or updated successfully');
     }
   } catch (error) {
     console.error('Error in savePushTokenToDatabase:', error);
   }
 }
+
+
 
 export function setupNotificationListeners(
   onNotificationReceived?: (notification: Notifications.Notification) => void,

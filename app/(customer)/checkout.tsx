@@ -13,12 +13,12 @@ import PayPalPayment from '@/components/PayPalPayment';
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { cartData, promoData } = useLocalSearchParams();
+  const { cartData } = useLocalSearchParams();
   const { user, profile, refreshProfile } = useAuth();
   const { clearCart } = useCart();
   
   const [items, setItems] = useState<CartItem[]>([]);
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const { appliedPromo } = useCart();
   const [deliveryAddress, setDeliveryAddress] = useState(profile?.location || '');
   const [loading, setLoading] = useState(false);
   const [showPaystack, setShowPaystack] = useState(false);
@@ -37,15 +37,8 @@ export default function CheckoutScreen() {
       }
     }
 
-    if (promoData) {
-      try {
-        const parsedPromo = JSON.parse(promoData as string);
-        setAppliedPromo(parsedPromo);
-      } catch (error) {
-        console.error('Error parsing promo data:', error);
-      }
-    }
-  }, [cartData, promoData]);
+    
+  }, [cartData]);
 
   const userCurrency = profile?.preferred_currency || 'NGN';
 
@@ -195,11 +188,11 @@ export default function CheckoutScreen() {
           delivery_fee: orderTotals.deliveryFee,
           total: orderTotals.total,
           payment_method: 'wallet',
-          payment_status: 'paid', // This should trigger the stock reduction trigger
+          payment_status: 'paid',
           order_status: 'pending',
           delivery_address: deliveryAddress.trim(),
           currency: 'NGN',
-          promo_code: appliedPromo?.code || null,
+          promo_code_id: appliedPromo?.promoId || null, // Changed: Store promo ID instead of code
           discount_amount: discountAmount,
         })
         .select()
@@ -208,7 +201,7 @@ export default function CheckoutScreen() {
       if (orderError) throw orderError;
 
       console.log('Order created successfully:', orderRecord.id);
-      console.log('Stock should have been reduced by database trigger');
+      console.log('Promo used with ID:', appliedPromo?.promoId); // Debug log
 
       // Deduct from wallet
       const { error: walletError } = await supabase
@@ -235,13 +228,18 @@ export default function CheckoutScreen() {
       if (transactionError) throw transactionError;
 
       await refreshProfile();
-      await clearCart(); // Clear cart after successful order
+      
+      // CRITICAL: Clear cart immediately - this removes promo from context
+      await clearCart();
+      
+      // Small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       Alert.alert(
         'Order Placed Successfully',
         'Your order has been confirmed and is now pending processing. You will receive updates as it progresses.',
         [{ text: 'OK', onPress: () => {
-          router.replace('/orders');
+          router.replace('/(customer)/orders');
         }}]
       );
     } catch (error) {
@@ -296,12 +294,12 @@ export default function CheckoutScreen() {
           delivery_fee: orderData.deliveryFee,
           total: orderData.total,
           payment_method: provider,
-          payment_status: 'paid', // This should trigger the stock reduction trigger
+          payment_status: 'paid',
           order_status: 'pending',
           delivery_address: orderData.delivery_address,
           currency: orderData.currency,
           original_amount: orderData.original_amount,
-          promo_code: orderData.appliedPromo?.code || null,
+          promo_code_id: orderData.appliedPromo?.promoId || null, // Changed: Store promo ID instead of code
           discount_amount: orderData.discountAmount || 0,
         })
         .select()
@@ -310,7 +308,7 @@ export default function CheckoutScreen() {
       if (orderError) throw orderError;
 
       console.log('Online payment order created successfully:', orderRecord.id);
-      console.log('Stock should have been reduced by database trigger');
+      console.log('Promo used with ID:', orderData.appliedPromo?.promoId); // Debug log
 
       // Create transaction record
       const { error: transactionError } = await supabase
@@ -329,7 +327,11 @@ export default function CheckoutScreen() {
 
       if (transactionError) throw transactionError;
 
-      await clearCart(); // Clear cart after successful order
+      // CRITICAL: Clear cart immediately - this removes promo from context
+      await clearCart();
+      
+      // Small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       Alert.alert(
         'Order Placed Successfully',
