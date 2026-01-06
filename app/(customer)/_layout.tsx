@@ -112,25 +112,27 @@ export default function CustomerLayout() {
   return (
     <View style={{ flex: 1 }}>
       <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: '#7C3AED',
-          tabBarInactiveTintColor: '#9CA3AF',
-          tabBarStyle: {
-            backgroundColor: '#FFFFFF',
-            borderTopWidth: 1,
-            borderTopColor: '#E5E7EB',
-            paddingBottom: 8,
-            paddingTop: 8,
-            height: 80,
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontFamily: 'Inter-Medium',
-            marginTop: 4,
-          },
-        }}
-      >
+  backBehavior="history"
+  screenOptions={{
+    headerShown: false,
+    tabBarActiveTintColor: '#7C3AED',
+    tabBarInactiveTintColor: '#9CA3AF',
+    tabBarStyle: {
+      backgroundColor: '#FFFFFF',
+      borderTopWidth: 1,
+      borderTopColor: '#E5E7EB',
+      paddingBottom: 8,
+      paddingTop: 8,
+      height: 80,
+    },
+    tabBarLabelStyle: {
+      fontSize: 12,
+      fontFamily: 'Inter-Medium',
+      marginTop: 4,
+    },
+  }}
+>
+
         <Tabs.Screen
           name="index"
           options={{

@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Alert, Modal, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  RefreshControl,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { 
-  ArrowLeft, 
-  MessageCircle, 
-  Clock, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  MessageCircle,
+  Clock,
+  CheckCircle,
   AlertCircle,
   User,
-  Filter,
-  Search
 } from 'lucide-react-native';
 import SupportTicketModal from '@/components/SupportTicketModal';
-import { smartBack } from '@/lib/navigation';
 
 interface SupportTicket {
   id: string;
@@ -38,7 +47,10 @@ interface SupportTicket {
   };
 }
 
-const statusConfig = {
+const statusConfig: Record<
+  SupportTicket['status'],
+  { color: string; label: string; icon: any }
+> = {
   open: { color: '#3B82F6', label: 'Open', icon: AlertCircle },
   in_progress: { color: '#F59E0B', label: 'In Progress', icon: Clock },
   waiting_customer: { color: '#8B5CF6', label: 'Waiting Customer', icon: MessageCircle },
@@ -46,7 +58,10 @@ const statusConfig = {
   closed: { color: '#6B7280', label: 'Closed', icon: CheckCircle },
 };
 
-const priorityConfig = {
+const priorityConfig: Record<
+  SupportTicket['priority'],
+  { color: string; label: string }
+> = {
   low: { color: '#10B981', label: 'Low' },
   medium: { color: '#F59E0B', label: 'Medium' },
   high: { color: '#EF4444', label: 'High' },
@@ -66,7 +81,8 @@ export default function AdminHelpSupportScreen() {
     try {
       let query = supabase
         .from('support_tickets')
-        .select(`
+        .select(
+          `
           id,
           ticket_code,
           user_id,
@@ -78,7 +94,8 @@ export default function AdminHelpSupportScreen() {
           created_at,
           profiles!support_tickets_user_id_fkey(full_name, email),
           support_categories(name)
-        `)        
+        `
+        )
         .order('last_message_at', { ascending: false });
 
       if (selectedStatus !== 'all') {
@@ -89,9 +106,8 @@ export default function AdminHelpSupportScreen() {
 
       if (error) throw error;
 
-      // Get message counts for each ticket
       const ticketsWithCounts = await Promise.all(
-        (data || []).map(async (ticket) => {
+        (data || []).map(async (ticket: any) => {
           const { count } = await supabase
             .from('support_messages')
             .select('*', { count: 'exact', head: true })
@@ -99,8 +115,8 @@ export default function AdminHelpSupportScreen() {
 
           return {
             ...ticket,
-            _count: { messages: count || 0 }
-          };
+            _count: { messages: count || 0 },
+          } as SupportTicket;
         })
       );
 
@@ -121,6 +137,7 @@ export default function AdminHelpSupportScreen() {
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStatus]);
 
   const formatDate = (dateString: string) => {
@@ -128,18 +145,11 @@ export default function AdminHelpSupportScreen() {
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-    if (diffInHours < 1) {
-      return 'Just now';
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h ago`;
-    } else if (diffInHours < 168) {
-      return `${Math.floor(diffInHours / 24)}d ago`;
-    } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-    }
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const handleTicketPress = (ticket: SupportTicket) => {
@@ -153,15 +163,12 @@ export default function AdminHelpSupportScreen() {
     setSelectedTicket(null);
   };
 
-  const getTicketStats = () => {
-    const stats = {
-      total: tickets.length,
-      open: tickets.filter(t => t.status === 'open').length,
-      inProgress: tickets.filter(t => t.status === 'in_progress').length,
-      resolved: tickets.filter(t => t.status === 'resolved').length,
-    };
-    return stats;
-  };
+  const getTicketStats = () => ({
+    total: tickets.length,
+    open: tickets.filter((t) => t.status === 'open').length,
+    inProgress: tickets.filter((t) => t.status === 'in_progress').length,
+    resolved: tickets.filter((t) => t.status === 'resolved').length,
+  });
 
   const stats = getTicketStats();
 
@@ -181,20 +188,21 @@ export default function AdminHelpSupportScreen() {
             <Text style={styles.ticketSubject} numberOfLines={1}>
               {ticket.subject}
             </Text>
+
             <View style={styles.ticketMeta}>
               <User size={12} color="#6B7280" />
               <Text style={styles.customerName}>
                 {ticket.profiles?.full_name || ticket.profiles?.email || 'Unknown Customer'}
               </Text>
+
               {ticket.support_categories && (
                 <>
                   <Text style={styles.metaSeparator}>•</Text>
-                  <Text style={styles.categoryName}>
-                    {ticket.support_categories.name}
-                  </Text>
+                  <Text style={styles.categoryName}>{ticket.support_categories.name}</Text>
                 </>
               )}
             </View>
+
             <Text style={styles.ticketDescription} numberOfLines={2}>
               {ticket.description}
             </Text>
@@ -207,7 +215,7 @@ export default function AdminHelpSupportScreen() {
                 {statusInfo.label}
               </Text>
             </View>
-            
+
             <View style={[styles.priorityBadge, { backgroundColor: `${priorityInfo.color}20` }]}>
               <Text style={[styles.priorityText, { color: priorityInfo.color }]}>
                 {priorityInfo.label}
@@ -217,14 +225,10 @@ export default function AdminHelpSupportScreen() {
         </View>
 
         <View style={styles.ticketFooter}>
-          <Text style={styles.lastMessage}>
-            Last activity: {formatDate(ticket.last_message_at)}
-          </Text>
+          <Text style={styles.lastMessage}>Last activity: {formatDate(ticket.last_message_at)}</Text>
           <View style={styles.messageCount}>
             <MessageCircle size={12} color="#6B7280" />
-            <Text style={styles.messageCountText}>
-              {ticket._count?.messages || 0}
-            </Text>
+            <Text style={styles.messageCountText}>{ticket._count?.messages || 0}</Text>
           </View>
         </View>
       </Pressable>
@@ -243,113 +247,117 @@ export default function AdminHelpSupportScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable
-          style={styles.backButton}
-          onPress={() => router.replace('/(admin)/settings')}
-        >
+        <Pressable style={styles.backButton} onPress={() => router.replace('/(admin)/settings')}>
           <ArrowLeft size={24} color="#1F2937" />
         </Pressable>
         <Text style={styles.headerTitle}>Help & Support</Text>
         <View style={styles.placeholder} />
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: '#3B82F6' }]}>{stats.open}</Text>
-          <Text style={styles.statLabel}>Open</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: '#F59E0B' }]}>{stats.inProgress}</Text>
-          <Text style={styles.statLabel}>In Progress</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: '#10B981' }]}>{stats.resolved}</Text>
-          <Text style={styles.statLabel}>Resolved</Text>
-        </View>
-      </View>
-
-      {/* Status Filter */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
-        contentContainerStyle={styles.filtersContent}
+      {/* ✅ Keyboard-safe wrapper (important because SupportTicketModal has inputs) */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={80}
       >
-        {statusFilters.map((filter) => (
-          <Pressable
-            key={filter.key}
-            style={[
-              styles.filterChip,
-              selectedStatus === filter.key && styles.filterChipActive
-            ]}
-            onPress={() => setSelectedStatus(filter.key)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                selectedStatus === filter.key && styles.filterTextActive
-              ]}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={{ flex: 1 }}>
+            {/* Stats */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: '#3B82F6' }]}>{stats.open}</Text>
+                <Text style={styles.statLabel}>Open</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: '#F59E0B' }]}>{stats.inProgress}</Text>
+                <Text style={styles.statLabel}>In Progress</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: '#10B981' }]}>{stats.resolved}</Text>
+                <Text style={styles.statLabel}>Resolved</Text>
+              </View>
+            </View>
+
+            {/* Status Filter */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filtersContainer}
+              contentContainerStyle={styles.filtersContent}
+              keyboardShouldPersistTaps="handled"
             >
-              {filter.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+              {statusFilters.map((filter) => (
+                <Pressable
+                  key={filter.key}
+                  style={[
+                    styles.filterChip,
+                    selectedStatus === filter.key && styles.filterChipActive,
+                  ]}
+                  onPress={() => setSelectedStatus(filter.key)}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      selectedStatus === filter.key && styles.filterTextActive,
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
 
-      {/* Tickets List */}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading tickets...</Text>
-          </View>
-        ) : tickets.length > 0 ? (
-          <View style={styles.ticketsContainer}>
-            {tickets.map(renderTicket)}
-          </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <MessageCircle size={64} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No Support Tickets</Text>
-            <Text style={styles.emptySubtitle}>
-              {selectedStatus === 'all' 
-                ? 'No support tickets have been created yet'
-                : `No ${selectedStatus.replace('_', ' ')} tickets found`
-              }
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+            {/* Tickets List */}
+            <ScrollView
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>Loading tickets...</Text>
+                </View>
+              ) : tickets.length > 0 ? (
+                <View style={styles.ticketsContainer}>{tickets.map(renderTicket)}</View>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <MessageCircle size={64} color="#D1D5DB" />
+                  <Text style={styles.emptyTitle}>No Support Tickets</Text>
+                  <Text style={styles.emptySubtitle}>
+                    {selectedStatus === 'all'
+                      ? 'No support tickets have been created yet'
+                      : `No ${selectedStatus.replace('_', ' ')} tickets found`}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
 
-      {/* Support Ticket Modal */}
-      <SupportTicketModal
-        ticket={selectedTicket}
-        visible={showTicketModal}
-        onClose={() => {
-          setShowTicketModal(false);
-          setSelectedTicket(null);
-        }}
-        onUpdate={handleTicketUpdate}
-      />
+            {/* Support Ticket Modal */}
+            <SupportTicketModal
+              ticket={selectedTicket}
+              visible={showTicketModal}
+              onClose={() => {
+                setShowTicketModal(false);
+                setSelectedTicket(null);
+              }}
+              onUpdate={handleTicketUpdate}
+            />
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -368,14 +376,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#1F2937',
-  },
-  placeholder: {
-    width: 40,
-  },
+  headerTitle: { fontSize: 18, fontFamily: 'Inter-Bold', color: '#1F2937' },
+  placeholder: { width: 40 },
+
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -394,21 +397,10 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  statValue: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  filtersContainer: {
-    maxHeight: 48,
-    marginBottom: 16,
-  },
+  statValue: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#1F2937', marginBottom: 4 },
+  statLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#6B7280' },
+
+  filtersContainer: { maxHeight: 48, marginBottom: 16 },
   filtersContent: {
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -427,34 +419,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  filterChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
-  },
-  filterText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  ticketsContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
+  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  filterText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#6B7280' },
+  filterTextActive: { color: '#FFFFFF' },
+
+  scrollView: { flex: 1 },
+  loadingContainer: { padding: 40, alignItems: 'center' },
+  loadingText: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#6B7280' },
+
+  ticketsContainer: { paddingHorizontal: 20, paddingBottom: 20 },
+
   ticketCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -466,51 +440,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  ticketHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  ticketInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  ticketSubject: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  ticketMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 4,
-  },
-  customerName: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  metaSeparator: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  categoryName: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
-  },
-  ticketDescription: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    lineHeight: 18,
-  },
-  ticketRight: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
+  ticketHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  ticketInfo: { flex: 1, marginRight: 12 },
+
+  ticketSubject: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#1F2937', marginBottom: 4 },
+  ticketMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4 },
+  customerName: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#6B7280' },
+  metaSeparator: { fontSize: 12, color: '#9CA3AF' },
+  categoryName: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#7C3AED' },
+  ticketDescription: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#6B7280', lineHeight: 18 },
+
+  ticketRight: { alignItems: 'flex-end', gap: 8 },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -519,19 +459,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 4,
   },
-  statusText: {
-    fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  priorityText: {
-    fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
-  },
+  statusText: { fontSize: 10, fontFamily: 'Inter-SemiBold' },
+  priorityBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  priorityText: { fontSize: 10, fontFamily: 'Inter-SemiBold' },
+
   ticketFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -540,38 +471,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  lastMessage: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-  },
-  messageCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  messageCountText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#1F2937',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+  lastMessage: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9CA3AF' },
+  messageCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  messageCountText: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#6B7280' },
+
+  emptyContainer: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#1F2937', marginTop: 16, marginBottom: 8 },
+  emptySubtitle: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#6B7280', textAlign: 'center', lineHeight: 24 },
 });
