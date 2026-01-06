@@ -19,7 +19,6 @@ import {
 } from '@/lib/pushNotifications';
 import Constants from 'expo-constants';
 
-
 // Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
 
@@ -34,69 +33,127 @@ Notifications.setNotificationHandler({
 
 // Push notification setup component
 function PushNotificationSetup() {
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
   const router = useRouter();
   const listenersRef = useRef<{
     notificationListener: Notifications.Subscription;
     responseListener: Notifications.Subscription;
   } | null>(null);
+  const hasSetupRef = useRef(false);
 
   useEffect(() => {
-    if (listenersRef.current) {
-      cleanupNotificationListeners(listenersRef.current);
-      listenersRef.current = null;
+    // ✅ Wait for auth to initialize
+    if (!isInitialized) return;
+
+    // ✅ Only run when user is available
+    if (!user?.id) {
+      // Cleanup if user signs out
+      if (listenersRef.current) {
+        cleanupNotificationListeners(listenersRef.current);
+        listenersRef.current = null;
+        hasSetupRef.current = false;
+      }
+      return;
     }
-  
-    if (!user?.id) return;
-  
+
+    // ✅ Prevent duplicate setup
+    if (hasSetupRef.current) return;
+
     // 🚫 Skip push registration in Expo Go
     if (Constants.appOwnership === 'expo') {
       console.log('ℹ️ Skipping push registration in Expo Go');
       return;
     }
-  
-    // 1) Register and save token
+
+    hasSetupRef.current = true;
+
+    // 1) Register + save token
     (async () => {
-      const token = await registerForPushNotificationsAsync();
-      if (token) {
-        await savePushTokenToDatabase(user.id, token);
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (token && user?.id) {
+          await savePushTokenToDatabase(user.id, token);
+        }
+      } catch (error) {
+        console.error('Error setting up push notifications:', error);
       }
     })();
-  
+
     // 2) Setup listeners
     const listeners = setupNotificationListeners(
       (notification) => {
         console.log('📱 Notification received:', notification.request.content.title);
-        router.setParams({ refresh: String(Date.now()) });
+        try {
+          router.setParams({ refresh: String(Date.now()) });
+        } catch (e) {
+          console.log('Could not set params:', e);
+        }
       },
       (response) => {
         const data: any = response.notification.request.content.data || {};
         const type = String(data.type || '');
-  
-        if (type === 'order') {
-          router.push('/(customer)/orders');
-        } else if (type === 'promo') {
-          router.push('/(customer)/shop');
-        } else {
-          router.push('/(customer)/notifications');
+
+        try {
+          if (type === 'order') {
+            router.push('/(customer)/orders');
+          } else if (type === 'promo') {
+            router.push('/(customer)/shop');
+          } else {
+            router.push('/(customer)/notifications');
+          }
+        } catch (e) {
+          console.log('Could not navigate:', e);
         }
       }
     );
-  
+
     listenersRef.current = listeners;
-  
+
     return () => {
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
         listenersRef.current = null;
       }
+      hasSetupRef.current = false;
     };
-  }, [user?.id]);
-  
+  }, [user?.id, isInitialized, router]);
+
   return null;
 }
 
+function RootLayoutContent() {
+  const { user, isInitialized } = useAuth();
+  
+  // ✅ Force remount on auth changes to prevent hook order issues
+  const authKey = user?.id || 'signed-out';
+  
+  return (
+    <View key={authKey} style={{ flex: 1 }}>
+      <PushNotificationSetup />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      >
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(customer)" options={{ headerShown: false }} />
+        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+
+      <StatusBar
+        style="auto"
+        translucent
+        backgroundColor="transparent"
+        hidden={false}
+      />
+    </View>
+  );
+}
+
 export default function RootLayout() {
+  // ✅ Call ALL hooks at the top level, unconditionally
   useFrameworkReady();
 
   const [fontsLoaded, fontError] = useFonts({
@@ -106,27 +163,24 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
   });
 
+  // ✅ All useEffect hooks must also be called unconditionally
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      // Hide the splash screen after fonts are loaded
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    // Configure edge-to-edge for Android 15+
     if (Platform.OS === 'android') {
-      // Use updated APIs for Android 15+ compatibility
       SystemUI.setBackgroundColorAsync('transparent');
       
       if (Platform.Version >= 35) {
         console.log('Configuring edge-to-edge for Android 15+ (SDK 35+)');
-        // Android 15+ handles edge-to-edge automatically with proper inset handling
       }
     }
   }, []);
 
-  // Keep the splash screen visible while fonts are loading
+  // ✅ Show nothing until fonts are ready to prevent hook order issues
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -135,24 +189,7 @@ export default function RootLayout() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <AuthProvider>
         <CartProvider>
-          <PushNotificationSetup />
-          <View style={{ flex: 1 }}>
-            <Stack screenOptions={{ 
-              headerShown: false,
-              contentStyle: { backgroundColor: 'transparent' }
-            }}>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(customer)" options={{ headerShown: false }} />
-              <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar 
-              style="auto" 
-              translucent 
-              backgroundColor="transparent" 
-              hidden={false}
-            />
-          </View>
+          <RootLayoutContent />
         </CartProvider>
       </AuthProvider>
     </SafeAreaProvider>

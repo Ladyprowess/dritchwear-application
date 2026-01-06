@@ -112,12 +112,12 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await signOut();
-            router.replace('/(auth)/welcome');
           },
         },
       ]
     );
   };
+  
 
   const handleWalletHistory = () => {
     router.push('/(customer)/wallet-history');

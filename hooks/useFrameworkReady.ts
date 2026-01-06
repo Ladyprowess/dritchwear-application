@@ -8,6 +8,9 @@ declare global {
 
 export function useFrameworkReady() {
   useEffect(() => {
-    window.frameworkReady?.();
-  });
+    // Call once, safely
+    if (typeof window !== 'undefined' && typeof window.frameworkReady === 'function') {
+      window.frameworkReady();
+    }
+  }, []); // ✅ IMPORTANT: dependency array
 }
