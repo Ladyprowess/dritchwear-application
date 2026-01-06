@@ -191,6 +191,7 @@ description: orderNote.trim() || null,
           subtotal: orderTotals.subtotal,
           service_fee: orderTotals.serviceFee,
           delivery_fee: orderTotals.deliveryFee,
+          tax: orderTotals.tax,
           total: orderTotals.total,
           payment_method: 'wallet',
           payment_status: 'paid',
@@ -300,6 +301,7 @@ notes: orderNote.trim() || null,
           subtotal: orderData.subtotal,
           service_fee: orderData.serviceFee,
           delivery_fee: orderData.deliveryFee,
+          tax: orderData.tax,
           total: orderData.total,
           payment_method: provider,
           payment_status: 'paid',
@@ -363,14 +365,18 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
   const discountedSubtotalNGN = subtotalNGN - discountNGN;
   
   // Only calculate delivery fee if address is provided
-  const orderTotals = hasDeliveryAddress() 
-    ? calculateOrderTotal(discountedSubtotalNGN, deliveryAddress, 'NGN')
-    : {
-        subtotal: discountedSubtotalNGN,
-        serviceFee: discountedSubtotalNGN * 0.02,
-        deliveryFee: 0,
-        total: discountedSubtotalNGN + (discountedSubtotalNGN * 0.02)
-      };
+  const orderTotals = hasDeliveryAddress()
+  ? calculateOrderTotal(discountedSubtotalNGN, deliveryAddress, 'NGN')
+  : {
+      subtotal: discountedSubtotalNGN,
+      serviceFee: discountedSubtotalNGN * 0.02,
+      deliveryFee: 0,
+      tax: 0,
+      discountAmount: discountNGN,
+      total: discountedSubtotalNGN + (discountedSubtotalNGN * 0.02) + 0,
+      currency: 'NGN',
+    };
+
   
   // Convert to user currency for display
   const displayTotals = {
@@ -378,8 +384,10 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
     discount: userCurrency === 'NGN' ? discountNGN : convertFromNGN(discountNGN, userCurrency),
     serviceFee: userCurrency === 'NGN' ? orderTotals.serviceFee : convertFromNGN(orderTotals.serviceFee, userCurrency),
     deliveryFee: userCurrency === 'NGN' ? orderTotals.deliveryFee : convertFromNGN(orderTotals.deliveryFee, userCurrency),
+    tax: userCurrency === 'NGN' ? orderTotals.tax : convertFromNGN(orderTotals.tax, userCurrency),
     total: userCurrency === 'NGN' ? orderTotals.total : convertFromNGN(orderTotals.total, userCurrency),
   };
+  
 
   return (
     <>
@@ -483,6 +491,14 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
                   }
                 </Text>
               </View>
+
+              <View style={styles.totalRow}>
+  <Text style={styles.totalLabel}>Tax</Text>
+  <Text style={styles.totalValue}>
+    {formatCurrency(displayTotals.tax, userCurrency)}
+  </Text>
+</View>
+
               
               <View style={[styles.totalRow, styles.finalTotal]}>
                 <Text style={styles.finalTotalLabel}>Total</Text>

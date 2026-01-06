@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS orders (
   subtotal decimal(10,2) NOT NULL,
   service_fee decimal(10,2) NOT NULL,
   delivery_fee decimal(10,2) NOT NULL,
+  tax decimal(10,2) NOT NULL,
   total decimal(10,2) NOT NULL,
   payment_method text NOT NULL CHECK (payment_method IN ('wallet', 'paystack')),
   payment_status text DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),

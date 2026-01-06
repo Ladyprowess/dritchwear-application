@@ -25,6 +25,7 @@ interface Order {
   subtotal?: number;
   service_fee?: number;
   delivery_fee?: number;
+  tax?: number;
   total: number;
   payment_method?: string;
   payment_status?: string;
@@ -758,6 +759,10 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Delivery Fee</Text>
                       <Text style={styles.summaryValue}>{formatAmountInPaymentCurrency(order.delivery_fee || 0)}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Tax</Text>
+                      <Text style={styles.summaryValue}>{formatAmountInPaymentCurrency(order.tax || 0)}</Text>
                     </View>
                     <View style={[styles.summaryRow, styles.summaryTotal]}>
                       <Text style={styles.summaryTotalLabel}>Total</Text>

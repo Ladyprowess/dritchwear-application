@@ -82,6 +82,7 @@ const fetchDashboardData = async () => {
         subtotal,
         service_fee,
         delivery_fee,
+        tax,
         total,
         payment_method,
         payment_status,

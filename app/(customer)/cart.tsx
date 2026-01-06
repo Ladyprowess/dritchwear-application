@@ -442,6 +442,10 @@ const validateExistingPromo = async () => {
             <Text style={styles.summaryLabel}>Service Fee</Text>
             <Text style={styles.summaryNote}>Calculated at checkout</Text>
           </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Tax</Text>
+            <Text style={styles.summaryNote}>Calculated at checkout</Text>
+          </View>
           
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>

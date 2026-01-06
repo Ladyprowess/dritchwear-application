@@ -44,7 +44,7 @@
     
     "android": {
       "package": "com.dritchwear.app",
-      "versionCode": 14,
+      "versionCode": 15,
 
     
       "adaptiveIcon": {

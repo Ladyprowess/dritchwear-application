@@ -1,5 +1,9 @@
 export const SERVICE_FEE_PERCENTAGE = 0.02; // 2%
 
+// Keep this if you still want a default/fallback (optional)
+// But we’ll mainly use getTaxRateByLocation().
+export const TAX_PERCENTAGE = 0.20; // 20%
+
 export const DELIVERY_FEES = {
   lagos: 3500,
   outside_lagos: 5000,
@@ -7,7 +11,10 @@ export const DELIVERY_FEES = {
 } as const;
 
 // Currency-specific delivery fees (in local currency)
-export const DELIVERY_FEES_BY_CURRENCY: Record<string, { local: number; national: number; international: number }> = {
+export const DELIVERY_FEES_BY_CURRENCY: Record<
+  string,
+  { local: number; national: number; international: number }
+> = {
   NGN: { local: 3500, national: 5000, international: 15000 },
   USD: { local: 5, national: 8, international: 25 },
   EUR: { local: 4, national: 7, international: 20 },
@@ -21,18 +28,22 @@ export const DELIVERY_FEES_BY_CURRENCY: Record<string, { local: number; national
   ZAR: { local: 80, national: 120, international: 400 },
 };
 
-export function calculateDeliveryFee(location: string, currency: string = 'NGN'): number {
-  const fees = DELIVERY_FEES_BY_CURRENCY[currency] || DELIVERY_FEES_BY_CURRENCY.NGN;
-  
+export function calculateDeliveryFee(
+  location: string,
+  currency: string = 'NGN'
+): number {
+  const fees =
+    DELIVERY_FEES_BY_CURRENCY[currency] || DELIVERY_FEES_BY_CURRENCY.NGN;
+
   if (!location) return fees.local;
-  
+
   const normalizedLocation = location.toLowerCase().trim();
-  
+
   // Check for Lagos specifically (for NGN) or local delivery for other currencies
   if (currency === 'NGN' && normalizedLocation.includes('lagos')) {
     return fees.local;
   }
-  
+
   // Check for other Nigerian states/cities (for NGN) or national delivery
   const nigerianStates = [
     'abia', 'adamawa', 'akwa ibom', 'anambra', 'bauchi', 'bayelsa', 'benue', 'borno',
@@ -41,7 +52,7 @@ export function calculateDeliveryFee(location: string, currency: string = 'NGN')
     'niger', 'ogun', 'ondo', 'osun', 'oyo', 'plateau', 'rivers', 'sokoto',
     'taraba', 'yobe', 'zamfara', 'abuja', 'fct'
   ];
-  
+
   const nigerianCities = [
     'abuja', 'kano', 'ibadan', 'kaduna', 'port harcourt', 'benin', 'maiduguri',
     'zaria', 'aba', 'jos', 'ilorin', 'oyo', 'enugu', 'abeokuta', 'abuja',
@@ -50,29 +61,66 @@ export function calculateDeliveryFee(location: string, currency: string = 'NGN')
     'yenagoa', 'jalingo', 'owerri', 'abakaliki', 'dutse', 'damaturu',
     'gusau', 'yola', 'minna', 'birnin kebbi', 'lokoja', 'osogbo'
   ];
-  
+
   // For NGN, check if location is in Nigeria
   if (currency === 'NGN') {
-    if (normalizedLocation.includes('nigeria') || 
-        nigerianStates.some(state => normalizedLocation.includes(state)) ||
-        nigerianCities.some(city => normalizedLocation.includes(city))) {
+    if (
+      normalizedLocation.includes('nigeria') ||
+      nigerianStates.some((state) => normalizedLocation.includes(state)) ||
+      nigerianCities.some((city) => normalizedLocation.includes(city))
+    ) {
       return fees.national;
     }
     return fees.international;
   }
-  
+
   // For other currencies, assume national delivery unless specified as international
-  if (normalizedLocation.includes('international') || 
-      normalizedLocation.includes('worldwide') ||
-      normalizedLocation.includes('global')) {
+  if (
+    normalizedLocation.includes('international') ||
+    normalizedLocation.includes('worldwide') ||
+    normalizedLocation.includes('global')
+  ) {
     return fees.international;
   }
-  
+
   return fees.national;
 }
 
 export function calculateServiceFee(subtotal: number): number {
   return Math.round(subtotal * SERVICE_FEE_PERCENTAGE * 100) / 100;
+}
+
+export function getTaxRateByLocation(
+  location: string,
+  currency: string = 'NGN'
+): number {
+  const loc = location?.toLowerCase() || '';
+
+  // 🇳🇬 Nigeria (20% as you requested)
+  if (currency === 'NGN') {
+    return 0.20;
+  }
+
+  // 🇬🇧 UK
+  if (currency === 'GBP') return 0.20;
+
+  // 🇪🇺 EU
+  if (currency === 'EUR') return 0.20;
+
+  // 🇺🇸 US (simplified)
+  if (currency === 'USD') return 0.07;
+
+  // Default: no tax
+  return 0;
+}
+
+export function calculateTax(
+  subtotal: number,
+  location: string,
+  currency: string = 'NGN'
+): number {
+  const rate = getTaxRateByLocation(location, currency);
+  return Math.round(subtotal * rate * 100) / 100;
 }
 
 export function calculateOrderTotal(
@@ -84,19 +132,24 @@ export function calculateOrderTotal(
   subtotal: number;
   serviceFee: number;
   deliveryFee: number;
+  tax: number;
   discountAmount: number;
   total: number;
   currency: string;
 } {
   const discountedSubtotal = subtotal - discountAmount;
+
   const serviceFee = calculateServiceFee(discountedSubtotal);
   const deliveryFee = calculateDeliveryFee(location, currency);
-  const total = discountedSubtotal + serviceFee + deliveryFee;
+  const tax = calculateTax(discountedSubtotal, location, currency);
+
+  const total = discountedSubtotal + serviceFee + deliveryFee + tax;
 
   return {
     subtotal,
     serviceFee,
     deliveryFee,
+    tax,
     discountAmount,
     total: Math.round(total * 100) / 100, // Round to 2 decimal places
     currency,

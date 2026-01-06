@@ -143,6 +143,7 @@ export interface Database {
           subtotal: number
           service_fee: number
           delivery_fee: number
+          tax: number
           total: number
           payment_method: string
           payment_status: string
@@ -161,6 +162,7 @@ export interface Database {
           subtotal: number
           service_fee: number
           delivery_fee: number
+          tax: number
           total: number
           payment_method: string
           payment_status?: string
@@ -179,6 +181,7 @@ export interface Database {
           subtotal?: number
           service_fee?: number
           delivery_fee?: number
+          tax: number
           total?: number
           payment_method?: string
           payment_status?: string
