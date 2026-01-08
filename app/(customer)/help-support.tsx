@@ -467,7 +467,7 @@ export default function HelpSupportScreen() {
       <Modal
         visible={showNewTicketModal}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={() => setShowNewTicketModal(false)}
       >
         <SafeAreaView style={styles.modalContainer}>

@@ -41,7 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'com.dritchwear.app',
     googleServicesFile: './google-services.json',
-    versionCode: 15,
+    versionCode: 16,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',

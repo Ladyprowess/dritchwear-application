@@ -352,7 +352,7 @@ export default function ProductModal({ product, visible, onClose, onOrderSuccess
       <Modal
         visible={visible}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={handleClose}
       >
         <SafeAreaView style={styles.container}>

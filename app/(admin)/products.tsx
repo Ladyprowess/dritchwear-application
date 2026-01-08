@@ -521,7 +521,7 @@ export default function AdminProductsScreen() {
       <ProductDetailsModal product={selectedProduct} visible={showDetailsModal} onClose={closeDetailsModal} />
 
       {/* ✅ Modal with keyboard fix */}
-      <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={closeModal}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add New Product'}</Text>

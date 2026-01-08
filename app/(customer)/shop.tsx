@@ -513,6 +513,7 @@ const styles = StyleSheet.create({
   },
   productCard: {
     flex: 1,
+    width: '100%',
     marginHorizontal: 4,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -538,6 +539,13 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 4,
     lineHeight: 18,
+  },
+  productDescription: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginBottom: 6,
+    lineHeight: 16,
   },
   categoriesRow: {
     flexDirection: 'row',
