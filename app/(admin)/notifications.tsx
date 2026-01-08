@@ -34,6 +34,7 @@ export default function AdminNotificationsScreen() {
   const [selectedAudience, setSelectedAudience] = useState('all');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  const [url, setUrl] = useState('');
   const [sending, setSending] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
@@ -93,6 +94,11 @@ export default function AdminNotificationsScreen() {
 
   const sendNotification = async () => {
     if (!title.trim() || !message.trim()) {
+      if (url.trim() && !/^https?:\/\/.+/i.test(url.trim())) {
+        Alert.alert('Invalid link', 'Link must start with http:// or https://');
+        return;
+      }
+      
       Alert.alert('Error', 'Please fill in both title and message');
       return;
     }
@@ -126,6 +132,7 @@ export default function AdminNotificationsScreen() {
             title: title.trim(),
             message: message.trim(),
             type: selectedType as any,
+            url: url.trim() ? url.trim() : null,
           }))
         : selectedAudience === 'customers'
         ? (userIds.map(id => ({
@@ -133,12 +140,14 @@ export default function AdminNotificationsScreen() {
             title: title.trim(),
             message: message.trim(),
             type: selectedType as any,
+            url: url.trim() ? url.trim() : null,
           })))
         : {
             user_id: null,
             title: title.trim(),
             message: message.trim(),
             type: selectedType as any,
+            url: url.trim() ? url.trim() : null,
           };
 
       const { error: dbError } = await supabase
@@ -185,6 +194,7 @@ export default function AdminNotificationsScreen() {
         [{ text: 'OK', onPress: () => {
           setTitle('');
           setMessage('');
+          setUrl('');
           setSelectedCustomers([]);
         }}]
       );
@@ -299,38 +309,56 @@ export default function AdminNotificationsScreen() {
         )}
 
         {/* Message Composition */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Message Details</Text>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Title</Text>
-            <TextInput
-              style={styles.titleInput}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Enter notification title"
-              placeholderTextColor="#9CA3AF"
-              maxLength={100}
-            />
-            <Text style={styles.characterCount}>{title.length}/100</Text>
-          </View>
+<View style={styles.section}>
+  <Text style={styles.sectionTitle}>Message Details</Text>
+  
+  <View style={styles.inputContainer}>
+    <Text style={styles.inputLabel}>Title</Text>
+    <TextInput
+      style={styles.titleInput}
+      value={title}
+      onChangeText={setTitle}
+      placeholder="Enter notification title"
+      placeholderTextColor="#9CA3AF"
+      maxLength={100}
+    />
+    <Text style={styles.characterCount}>{title.length}/100</Text>
+  </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Message</Text>
-            <TextInput
-              style={styles.messageInput}
-              value={message}
-              onChangeText={setMessage}
-              placeholder="Enter your message here..."
-              placeholderTextColor="#9CA3AF"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              maxLength={500}
-            />
-            <Text style={styles.characterCount}>{message.length}/500</Text>
-          </View>
-        </View>
+  <View style={styles.inputContainer}>
+    <Text style={styles.inputLabel}>Message</Text>
+    <TextInput
+      style={styles.messageInput}
+      value={message}
+      onChangeText={setMessage}
+      placeholder="Enter your message here..."
+      placeholderTextColor="#9CA3AF"
+      multiline
+      numberOfLines={4}
+      textAlignVertical="top"
+      maxLength={1000}
+    />
+    <Text style={styles.characterCount}>{message.length}/1000</Text>
+  </View>
+
+  {/* ✅ Link input MUST be here (inside the same section) */}
+  <View style={styles.inputContainer}>
+    <Text style={styles.inputLabel}>Link (optional)</Text>
+    <TextInput
+      style={styles.titleInput}
+      value={url}
+      onChangeText={setUrl}
+      placeholder="https://example.com"
+      placeholderTextColor="#9CA3AF"
+      autoCapitalize="none"
+      autoCorrect={false}
+      keyboardType="url"
+      maxLength={300}
+    />
+    <Text style={styles.characterCount}>{url.length}/300</Text>
+  </View>
+</View>
+
 
         {/* Preview */}
         <View style={styles.section}>

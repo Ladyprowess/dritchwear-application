@@ -13,6 +13,7 @@ interface Notification {
   type: 'order' | 'promo' | 'system' | 'custom';
   is_read: boolean;
   created_at: string;
+  url?: string | null;
 }
 
 const typeConfig = {

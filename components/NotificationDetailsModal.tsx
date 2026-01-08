@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Package, Gift, CircleAlert as AlertCircle, Bell, Calendar, User, MessageCircle } from 'lucide-react-native';
-
+import { X, Package, Gift, CircleAlert as AlertCircle, Bell, Calendar, User, MessageCircle, Link as LinkIcon } from 'lucide-react-native';   
 import { useRouter } from 'expo-router';
+
 
 interface Notification {
   id: string;
@@ -12,6 +12,7 @@ interface Notification {
   type: 'order' | 'promo' | 'system' | 'custom';
   is_read: boolean;
   created_at: string;
+  url?: string | null;
 }
 
 interface NotificationDetailsModalProps {
@@ -128,6 +129,24 @@ return match?.[1] || null;
 
   }
   
+  const handleOpenLink = async () => {
+    const raw = (notification.url || '').trim();
+    if (!raw) return;
+  
+    // If admin mistakenly saved "www..." without https, we fix it
+    const finalUrl = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  
+    try {
+      const canOpen = await Linking.canOpenURL(finalUrl);
+      if (!canOpen) {
+        Alert.alert('Cannot open link', 'This link is not supported on your device.');
+        return;
+      }
+      await Linking.openURL(finalUrl);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to open link.');
+    }
+  };
   
 
 // ✅ Detect support notification
@@ -214,7 +233,25 @@ const handleViewSupport = () => {
                   <Text style={styles.metadataLabel}>From</Text>
                   <Text style={styles.metadataValue}>Dritchwear Team</Text>
                 </View>
-              </View>
+                </View>
+              
+
+                {notification.url ? (
+  <View style={styles.metadataRow}>
+    <LinkIcon size={16} color="#6B7280" />
+    <View style={styles.metadataContent}>
+      <Text style={styles.metadataLabel}>URL</Text>
+
+      <Pressable onPress={handleOpenLink} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+  <Text style={styles.linkText}>Open URL</Text>
+</Pressable>
+
+    </View>
+  </View>
+) : null}
+
+
+
 
               <View style={styles.metadataRow}>
                 <View style={[
@@ -409,6 +446,14 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1,
   },
+  linkText: {
+    fontSize: 14,
+    fontFamily: 'Inter-BoldItalic', // ✅ correct way
+    color: '#7C3AED',
+    marginTop: 2,
+  },
+  
+
   metadataLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
