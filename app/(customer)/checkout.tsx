@@ -19,12 +19,30 @@ export default function CheckoutScreen() {
   
   const [items, setItems] = useState<CartItem[]>([]);
   const { appliedPromo } = useCart();
-  const [deliveryAddress, setDeliveryAddress] = useState(profile?.location || '');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPaystack, setShowPaystack] = useState(false);
   const [showPayPal, setShowPayPal] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
   const [orderNote, setOrderNote] = useState('');
+  const defaultAddress = (profile?.location || '').trim(); // or profile?.delivery_address if you have that
+const [showAddressPrompt, setShowAddressPrompt] = useState(false);
+const [addressPromptHandled, setAddressPromptHandled] = useState(false);
+
+
+const handleUseDefaultAddress = () => {
+  setDeliveryAddress(defaultAddress);
+  setShowAddressPrompt(false);
+  setAddressPromptHandled(true);
+};
+
+const handleChangeAddress = () => {
+  setDeliveryAddress(''); // user will type manually
+  setShowAddressPrompt(false);
+  setAddressPromptHandled(true);
+};
+
+
 
 
   useEffect(() => {
@@ -41,6 +59,24 @@ export default function CheckoutScreen() {
 
     
   }, [cartData]);
+
+  useEffect(() => {
+    // Wait until profile loads
+    if (!profile) return;
+  
+    // If prompt already handled, don't show again
+    if (addressPromptHandled) return;
+  
+    // If user has a saved address, ask what to do
+    if (defaultAddress.length > 0) {
+      setShowAddressPrompt(true);
+      return;
+    }
+  
+    // If no saved address, just let them type
+    setAddressPromptHandled(true);
+  }, [profile, defaultAddress, addressPromptHandled]);
+  
 
   const userCurrency = profile?.preferred_currency || 'NGN';
 
@@ -570,6 +606,33 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
         </ScrollView>
       </SafeAreaView>
 
+      <Modal
+  visible={showAddressPrompt}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowAddressPrompt(false)}
+>
+  <View style={styles.overlay}>
+    <View style={styles.promptCard}>
+      <Text style={styles.promptTitle}>Use saved address?</Text>
+      <Text style={styles.promptText} numberOfLines={4}>
+        {defaultAddress}
+      </Text>
+
+      <View style={styles.promptActions}>
+        <Pressable style={styles.secondaryBtn} onPress={handleChangeAddress}>
+          <Text style={styles.secondaryBtnText}>Change</Text>
+        </Pressable>
+
+        <Pressable style={styles.primaryBtn} onPress={handleUseDefaultAddress}>
+          <Text style={styles.primaryBtnText}>Use this</Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+
       {/* Paystack Payment Modal */}
       <Modal
         visible={showPaystack}
@@ -769,6 +832,62 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  promptCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+  },
+  promptTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  promptText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+    marginBottom: 14,
+  },
+  promptActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  secondaryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  secondaryBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  primaryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: '#7C3AED',
+  },
+  primaryBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  
   totalValue: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',

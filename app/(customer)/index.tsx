@@ -4,13 +4,15 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Wallet, Plus, Sparkles, ShoppingBag, Star, ShoppingCart } from 'lucide-react-native';
+import { Wallet, Plus, Sparkles, ShoppingBag, Star, ShoppingCart, Copy } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import ProductModal from '@/components/ProductModal';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import EdgeToEdgeWrapper from '@/components/EdgeToEdgeWrapper';
 import { useEdgeToEdge } from '@/hooks/useEdgeToEdge';
 import ResponsiveGrid from '@/components/ResponsiveGrid';
+import * as Clipboard from 'expo-clipboard';
+
 
 interface Product {
   id: string;
@@ -222,6 +224,14 @@ const fetchProductsWithReviews = async () => {
 
   const currentOffer = specialOffers.length > 0 ? specialOffers[0] : null;
 
+  const handleCopyPromoCode = async (code?: string) => {
+    if (!code) return;
+  
+    await Clipboard.setStringAsync(code);
+    Alert.alert('Copied', `Promo code "${code}" copied to clipboard.`);
+  };
+  
+
   return (
     <EdgeToEdgeWrapper>
       <ScrollView
@@ -357,7 +367,17 @@ const fetchProductsWithReviews = async () => {
               <View>
                 <Text style={styles.promoTitle}>{currentOffer.title}</Text>
                 <Text style={styles.promoSubtitle}>{currentOffer.subtitle}</Text>
-                <Text style={styles.promoCode}>{currentOffer.discount_text}</Text>
+
+<Pressable
+  onPress={() => handleCopyPromoCode(currentOffer.promo_code)}
+  style={styles.promoCodeCopy}
+>
+  <Text style={styles.promoCodeText}>
+    Use Code: {currentOffer.promo_code}
+  </Text>
+  <Copy size={14} color="#FFFFFF" />
+</Pressable>
+
               </View>
               <Sparkles size={32} color="#FFFFFF" />
             </View>
@@ -516,6 +536,23 @@ const styles = StyleSheet.create({
   productInfo: {
     padding: 12,
   },
+  promoCodeCopy: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  promoCodeText: {
+    fontSize: 13,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  
   productName: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
