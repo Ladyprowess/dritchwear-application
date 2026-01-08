@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,43 +65,43 @@ export default function CustomerOrdersScreen() {
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
 
-  const fetchOrders = async () => {
-    if (!user) return;
-
+  const fetchOrders = useCallback(async () => {
+    if (!user?.id) return;
+  
     try {
-      // Fetch regular orders
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const { data: ordersData, error: ordersError } = await supabase
+  .from('orders')
+  .select('*') // <-- start simple first (NO profiles join)
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false });
 
-      // Fetch custom requests with invoices
-      const { data: customData } = await supabase
-        .from('custom_requests')
-        .select(`
-          *,
-          invoices(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+console.log('🧾 ORDERS error:', ordersError);
+console.log('🧾 ORDERS data:', ordersData);
 
-      if (ordersData) setOrders(ordersData);
-      if (customData) setCustomRequests(customData);
+if (ordersError) throw ordersError;
 
-      // Combine and filter
-      const allItems = [
-        ...(ordersData || []),
-        ...(customData || [])
-      ];
-      
+  
+const { data: customData, error: customError } = await supabase
+.from('custom_requests')
+.select('*, invoices(*)') // keep invoices ok
+.eq('user_id', user.id)
+.order('created_at', { ascending: false });
+
+console.log('🧪 CUSTOM error:', customError);
+console.log('🧪 CUSTOM data:', customData);
+
+if (customError) throw customError;
+
+  
+      const allItems = [...(ordersData || []), ...(customData || [])];
       filterOrders(allItems, selectedStatus);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, selectedStatus]);
+  
 
   const filterOrders = (ordersList: Order[], filter: string) => {
     let filtered = [...ordersList];
@@ -129,7 +129,46 @@ export default function CustomerOrdersScreen() {
 
   useEffect(() => {
     fetchOrders();
-  }, [user]);
+  }, [fetchOrders]);
+
+  
+  
+
+  useEffect(() => {
+    if (!user?.id) return;
+  
+    let timeout: any;
+  
+    const channel = supabase
+      .channel(`customer-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          console.log('✅ orders change:', payload.eventType);
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fetchOrders(), 300);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'custom_requests', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          console.log('✅ custom_requests change:', payload.eventType);
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fetchOrders(), 300);
+        }
+      )
+      .subscribe((status) => console.log('📡 realtime status:', status));
+  
+    return () => {
+      clearTimeout(timeout);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchOrders]);
+  
+
+  
 
   useEffect(() => {
     const allItems = [...orders, ...customRequests];
