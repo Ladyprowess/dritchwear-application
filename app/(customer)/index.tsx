@@ -275,9 +275,13 @@ const fetchProductsWithReviews = async () => {
             </Pressable>
             
             <Pressable style={styles.actionCard} onPress={handleCustomOrder}>
-              <Sparkles size={24} color="#F59E0B" />
-              <Text style={styles.actionText}>Custom Order</Text>
-            </Pressable>
+  <Image
+    source={require('@/assets/images/shop.png')}
+    style={styles.customOrderIcon}
+  />
+  <Text style={styles.actionText}>Custom Order</Text>
+</Pressable>
+
             
             <Pressable style={styles.actionCard} onPress={handleTrackOrder}>
               <ShoppingBag size={24} color="#10B981" />
@@ -379,7 +383,11 @@ const fetchProductsWithReviews = async () => {
 </Pressable>
 
               </View>
-              <Sparkles size={32} color="#FFFFFF" />
+              <Image
+  source={require('@/assets/images/logo.png')}
+  style={styles.promoSparkleIcon}
+/>
+
             </View>
           </LinearGradient>
         )}
@@ -552,6 +560,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
+
+  customOrderIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: '#F59E0B',
+  },
+  
+  
+  promoSparkleIcon: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
+    tintColor: '#FFFFFF',
+  },
+  
+  
   
   productName: {
     fontSize: 14,

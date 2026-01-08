@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Sparkles, Package, DollarSign, FileText, Building, Calendar, MapPin, Upload, Palette, Target } from 'lucide-react-native';
+import { ArrowLeft, Package, DollarSign, FileText, Building, Calendar, MapPin, Upload, Palette, Target } from 'lucide-react-native';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -423,8 +423,11 @@ if (!publicUrlData?.publicUrl) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <Sparkles size={48} color="#7C3AED" />
-          <Text style={styles.heroTitle}>Create Your Dream Design</Text>
+        <Image
+  source={require('@/assets/images/shop.png')}
+  style={styles.heroIcon}
+/>
+  <Text style={styles.heroTitle}>Create Your Dream Design</Text>
           <Text style={styles.heroSubtitle}>
             Tell us about your vision and we'll bring it to life with our premium craftsmanship
           </Text>
@@ -757,15 +760,19 @@ if (!publicUrlData?.publicUrl) {
 
           {/* Submit Button */}
           <Pressable
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            <Sparkles size={20} color="#FFFFFF" />
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Submitting...' : 'Submit Custom Request'}
-            </Text>
-          </Pressable>
+  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+  onPress={handleSubmit}
+  disabled={loading}
+>
+<Image
+  source={require('@/assets/images/shop.png')}
+  style={styles.submitIcon}
+/>
+  <Text style={styles.submitButtonText}>
+    {loading ? 'Submitting...' : 'Submit Custom Request'}
+  </Text>
+</Pressable>
+
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1056,6 +1063,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
     zIndex: 1,
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    resizeMode: 'contain',
+    tintColor: '#7C3AED',
+    marginBottom: 6,
+  },
+  
+  submitIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: '#FFFFFF',
   },
   errorText: {
     fontSize: 12,
