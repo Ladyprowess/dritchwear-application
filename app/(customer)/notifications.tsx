@@ -102,6 +102,88 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, [user]);
 
+
+  useEffect(() => {
+    if (!user) return;
+  
+    console.log('📡 Subscribing to realtime notifications for:', user.id);
+  
+    const channel = supabase
+      .channel(`notifications-screen-${user.id}`)
+  
+      // 1) Personal notifications (user_id = this user)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('🔔 REALTIME (USER) - NotificationsScreen:', payload.new);
+  
+          setNotifications((prev) => {
+            const exists = prev.some((n) => n.id === payload.new.id);
+            if (exists) return prev;
+            return [payload.new as Notification, ...prev];
+          });
+        }
+      )
+  
+      // 2) Broadcast notifications (user_id is null)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: 'user_id=is.null',
+        },
+        (payload) => {
+          console.log('🔔 REALTIME (BROADCAST) - NotificationsScreen:', payload.new);
+  
+          setNotifications((prev) => {
+            const exists = prev.some((n) => n.id === payload.new.id);
+            if (exists) return prev;
+            return [payload.new as Notification, ...prev];
+          });
+        }
+      )
+  
+      // 3) When anything updates (is_read changes), update local state
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          const updated = payload.new as Notification;
+  
+          // Only apply updates that belong to this user OR broadcast
+          const belongsToUserOrBroadcast =
+            (updated as any).user_id === user.id || (updated as any).user_id == null;
+  
+          if (!belongsToUserOrBroadcast) return;
+  
+          console.log('📝 REALTIME (UPDATE) - NotificationsScreen:', updated.id);
+  
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === updated.id ? { ...n, ...updated } : n))
+          );
+        }
+      )
+      .subscribe();
+  
+    return () => {
+      console.log('🧹 Unsubscribing notifications screen channel');
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+  
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();

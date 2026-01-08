@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Redirect, Tabs, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -6,6 +6,7 @@ import { Home, ShoppingBag, User, Bell, Search, ShoppingCart } from 'lucide-reac
 import { useCart } from '@/contexts/CartContext';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 
 
 function CartTabIcon({ size, color }: { size: number; color: string }) {
@@ -55,6 +56,8 @@ export default function CustomerLayout() {
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
+  const bannerTimerRef = useRef<any>(null);
+
 
   if (loading) return null;
 
@@ -63,76 +66,138 @@ export default function CustomerLayout() {
 
   useEffect(() => {
     if (!user) return;
-  
+
     const LAST_SEEN_KEY = `last_seen_notification_time_${user.id}`;
-  
+
+    // Initial fetch of notifications
     const checkNotifications = async () => {
-      // ✅ 1) Get unread count (badge)
+      // Get unread count (badge)
       const { count } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .or(`user_id.eq.${user.id},user_id.is.null`)
         .eq('is_read', false);
-  
+
       setUnreadCount(count || 0);
-  
-      // ✅ 2) Get the latest notification time
+
+      // Get the latest notification time
       const { data: latest } = await supabase
         .from('notifications')
         .select('created_at')
         .or(`user_id.eq.${user.id},user_id.is.null`)
         .order('created_at', { ascending: false })
         .limit(1);
-  
+
       const latestCreatedAt = latest?.[0]?.created_at;
       if (!latestCreatedAt) return;
-  
-      // ✅ 3) Compare with last stored time
+
+      // Compare with last stored time
       const lastSeen = await AsyncStorage.getItem(LAST_SEEN_KEY);
-  
-      // First time user runs app: set it, don’t show banner
+
+      // First time user runs app: set it, don't show banner
       if (!lastSeen) {
         await AsyncStorage.setItem(LAST_SEEN_KEY, latestCreatedAt);
         return;
       }
-  
-      // ✅ Show banner ONLY if there is something newer
+
+      // Show banner ONLY if there is something newer
       if (new Date(latestCreatedAt) > new Date(lastSeen)) {
         setShowBanner(true);
-  
-        // After showing once, update last seen so it doesn't show again
+        // Update last seen so banner doesn't show again for same notification
         await AsyncStorage.setItem(LAST_SEEN_KEY, latestCreatedAt);
       }
     };
-  
+
     checkNotifications();
-  }, [user]);
+
+    // ✅ Set up real-time subscription to listen for new notifications
+    const channel = supabase
+  .channel(`notifications-${user.id}`)
+  .on(
+    'postgres_changes',
+    {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      // ✅ no filter here
+    },
+    async (payload) => {
+      const n = payload.new as any;
+
+      // ✅ only react to:
+      // - notifications sent to this user
+      // - broadcast notifications (user_id is null)
+      if (n.user_id !== user.id && n.user_id !== null) return;
+
+      console.log('🔔 REALTIME FIRED:', n);
+
+      setShowBanner(true);
+
+      // safer than +1 (keeps badge correct)
+      setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
+
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = setTimeout(() => setShowBanner(false), 6000);
+
+      await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
+    }
+  )
+  .on(
+    'postgres_changes',
+    {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'notifications',
+      // ✅ no filter here too
+    },
+    async (payload) => {
+      const n = payload.new as any;
+      if (n.user_id !== user.id && n.user_id !== null) return;
+
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .eq('is_read', false);
+
+      setUnreadCount(count || 0);
+    }
+  )
+  .subscribe();
+
   
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      supabase.removeChannel(channel);
+    };
+    
+  }, [user]);
 
   return (
     <View style={{ flex: 1 }}>
       <Tabs
-  backBehavior="history"
-  screenOptions={{
-    headerShown: false,
-    tabBarActiveTintColor: '#7C3AED',
-    tabBarInactiveTintColor: '#9CA3AF',
-    tabBarStyle: {
-      backgroundColor: '#FFFFFF',
-      borderTopWidth: 1,
-      borderTopColor: '#E5E7EB',
-      paddingBottom: 8,
-      paddingTop: 8,
-      height: 80,
-    },
-    tabBarLabelStyle: {
-      fontSize: 12,
-      fontFamily: 'Inter-Medium',
-      marginTop: 4,
-    },
-  }}
->
-
+        backBehavior="history"
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#7C3AED',
+          tabBarInactiveTintColor: '#9CA3AF',
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: '#E5E7EB',
+            paddingBottom: 8,
+            paddingTop: 8,
+            height: 80,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontFamily: 'Inter-Medium',
+            marginTop: 4,
+          },
+        }}
+      >
         <Tabs.Screen
           name="index"
           options={{
@@ -187,7 +252,7 @@ export default function CustomerLayout() {
       </Tabs>
 
       {/* ✅ Bottom banner overlay (OUTSIDE Tabs) */}
-      {showBanner && unreadCount > 0 && (
+      {showBanner && (
         <Pressable
           style={styles.bottomBanner}
           onPress={() => {
@@ -257,6 +322,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bannerText: {
     color: '#FFFFFF',
