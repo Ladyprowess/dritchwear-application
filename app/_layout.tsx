@@ -133,7 +133,8 @@ function RootLayoutContent() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: 'transparent' },
+          contentStyle: { backgroundColor: '#F9FAFB' },
+
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -143,11 +144,11 @@ function RootLayoutContent() {
       </Stack>
 
       <StatusBar
-        style="auto"
-        translucent
-        backgroundColor="transparent"
-        hidden={false}
-      />
+  style="dark"
+  translucent={false}
+  backgroundColor="#F9FAFB"
+  hidden={false}
+/>
     </View>
   );
 }
@@ -172,13 +173,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (Platform.OS === 'android') {
-      SystemUI.setBackgroundColorAsync('transparent');
-      
-      if (Platform.Version >= 35) {
-        console.log('Configuring edge-to-edge for Android 15+ (SDK 35+)');
-      }
+      // ✅ Use a solid background so bottom tabs don't sit under system navigation
+      SystemUI.setBackgroundColorAsync('#F9FAFB');
     }
   }, []);
+  
 
   // ✅ Show nothing until fonts are ready to prevent hook order issues
   if (!fontsLoaded && !fontError) {

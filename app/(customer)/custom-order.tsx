@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,7 @@ import { ArrowLeft, Sparkles, Package, DollarSign, FileText, Building, Calendar,
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Crypto from 'expo-crypto';
 
 // Budget ranges in different currencies
@@ -124,6 +125,9 @@ export default function CustomOrderScreen() {
   });
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
+const [deadlineDate, setDeadlineDate] = useState<Date | null>(null);
+
 
   // Get user's preferred currency or default to NGN
   const userCurrency = profile?.preferred_currency || 'NGN';
@@ -295,6 +299,8 @@ if (!publicUrlData?.publicUrl) {
       return 'Network error. Please check your internet connection.';
     }
 
+
+
     return message;
   };
 
@@ -318,10 +324,18 @@ if (!publicUrlData?.publicUrl) {
       }
 
       let deadlineISO: string | null = null;
-      if (formData.deadline.trim()) {
+
+      if (deadlineDate) {
+        if (deadlineDate <= new Date()) {
+          Alert.alert('Invalid Deadline', 'Deadline must be in the future.');
+          return;
+        }
+        deadlineISO = deadlineDate.toISOString();
+      } else if (formData.deadline.trim()) {
+        // fallback (in case old data exists)
         const d = new Date(formData.deadline);
         if (Number.isNaN(d.getTime())) {
-          Alert.alert('Invalid Deadline', 'Use format YYYY-MM-DD');
+          Alert.alert('Invalid Deadline', 'Please select a valid date.');
           return;
         }
         if (d <= new Date()) {
@@ -330,6 +344,8 @@ if (!publicUrlData?.publicUrl) {
         }
         deadlineISO = d.toISOString();
       }
+      
+
 
       if (!user?.id) {
         Alert.alert('Error', 'You must be logged in.');
@@ -384,6 +400,14 @@ if (!publicUrlData?.publicUrl) {
       setLoading(false);
     }
   };
+
+  const formatDateYYYYMMDD = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -626,22 +650,64 @@ if (!publicUrlData?.publicUrl) {
           </View>
 
           {/* Deadline */}
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Deadline</Text>
-            <View style={styles.inputContainer}>
-              <Calendar size={20} color="#9CA3AF" />
-              <TextInput
-                style={styles.input}
-                value={formData.deadline}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, deadline: text }))}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-            <Text style={styles.formHint}>
-              When do you need this completed? (Optional)
-            </Text>
-          </View>
+          {/* Deadline */}
+<View style={styles.formGroup}>
+  <Text style={styles.formLabel}>Deadline</Text>
+
+  <Pressable
+    style={styles.inputContainer}
+    onPress={() => setShowDeadlinePicker(true)}
+  >
+    <Calendar size={20} color="#9CA3AF" />
+    <Text
+  style={[
+    styles.fakeInputText,
+    { color: formData.deadline ? '#1F2937' : '#9CA3AF' },
+  ]}
+>
+  {formData.deadline ? formData.deadline : 'Select a date'}
+</Text>
+
+  </Pressable>
+
+  <Text style={styles.formHint}>
+    When do you need this completed? (Optional)
+  </Text>
+
+  {showDeadlinePicker && (
+    <DateTimePicker
+      value={deadlineDate || new Date(Date.now() + 24 * 60 * 60 * 1000)} // default = tomorrow
+      mode="date"
+      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+      minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // no past dates (and not today)
+      onChange={(event, selected) => {
+        // Android: closing logic
+        if (Platform.OS !== 'ios') setShowDeadlinePicker(false);
+
+        if (!selected) return;
+
+        setDeadlineDate(selected);
+        setFormData(prev => ({
+          ...prev,
+          deadline: formatDateYYYYMMDD(selected),
+        }));
+      }}
+    />
+  )}
+
+  {/* iOS only: add a done button because iOS spinner stays open */}
+  {Platform.OS === 'ios' && showDeadlinePicker && (
+    <Pressable
+      style={{ marginTop: 10, alignSelf: 'flex-end' }}
+      onPress={() => setShowDeadlinePicker(false)}
+    >
+      <Text style={{ color: '#7C3AED', fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
+        Done
+      </Text>
+    </Pressable>
+  )}
+</View>
+
 
           {/* Additional Notes */}
           <View style={styles.formGroup}>
@@ -870,6 +936,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  fakeInputText: {
+    flex: 1,
+    height: 56,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    marginLeft: 12,
+    textAlignVertical: 'center',
+    paddingVertical: 16,
+  },
+  
   placementOption: {
     flexDirection: 'row',
     alignItems: 'center',

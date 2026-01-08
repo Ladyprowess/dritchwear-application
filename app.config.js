@@ -2,34 +2,45 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+
   name: 'Dritchwear',
   slug: 'dritch-wear',
   version: '1.0.0',
   orientation: 'portrait',
+
   icon: './assets/images/icon.png',
+
+  scheme: 'dritchwear',
+
   userInterfaceStyle: 'light',
+
   splash: {
     image: './assets/images/splash.png',
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
+
   androidStatusBar: {
     barStyle: 'dark-content',
     backgroundColor: '#000000',
     translucent: true,
   },
+
   androidNavigationBar: {
     visible: 'leanback',
     barStyle: 'dark-content',
     backgroundColor: '#000000',
   },
+
   assetBundlePatterns: ['**/*'],
+
   ios: {
     supportsTablet: true,
   },
+
   android: {
     package: 'com.dritchwear.app',
-    googleServicesFile: './google-services.json', // ✅ ADD THIS LINE
+    googleServicesFile: './google-services.json',
     versionCode: 15,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
@@ -37,10 +48,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     permissions: ['NOTIFICATIONS', 'READ_MEDIA_IMAGES'],
   },
+
   web: {
     favicon: './assets/images/favicon.png',
   },
+
   plugins: [
+    // ✅ Date picker plugin (required)
+    '@react-native-community/datetimepicker',
+
+    // ✅ Existing build properties (kept exactly as-is)
     [
       'expo-build-properties',
       {

@@ -1,8 +1,3 @@
-// Key changes for multi-category support in shop page:
-// 1. Updated Product interface to use 'categories' array
-// 2. Modified fetchProducts to handle backward compatibility
-// 3. Updated filtering logic to check if category is in categories array
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -171,9 +166,6 @@ export default function ShopScreen() {
           <Text style={styles.productName} numberOfLines={2}>
             {product.name}
           </Text>
-          <Text style={styles.productDescription} numberOfLines={2}>
-            {product.description}
-          </Text>
           
           {/* Display categories */}
           {product.categories.length > 0 && (
@@ -208,21 +200,7 @@ export default function ShopScreen() {
             </View>
           </View>
           
-          <View style={styles.productVariants}>
-            <View style={styles.sizesContainer}>
-              {product.sizes.slice(0, 3).map((size, index) => (
-                <Text key={index} style={styles.sizeText}>{size}</Text>
-              ))}
-              {product.sizes.length > 3 && (
-                <Text style={styles.moreText}>+{product.sizes.length - 3}</Text>
-              )}
-            </View>
-            <View style={styles.stockInfo}>
-              <Text style={styles.stockText}>
-                {product.stock > 0 ? `${product.stock} left` : 'Out of stock'}
-              </Text>
-            </View>
-          </View>
+          
         </View>
       </Pressable>
     );
@@ -545,11 +523,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
+  },  
   productImage: {
     width: '100%',
-    height: 140,
-  },
+    height: 160,
+    backgroundColor: '#F3F4F6',
+  },  
   productInfo: {
     padding: 12,
   },
@@ -559,13 +538,6 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 4,
     lineHeight: 18,
-  },
-  productDescription: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 6,
-    lineHeight: 16,
   },
   categoriesRow: {
     flexDirection: 'row',
@@ -577,7 +549,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Inter-Medium',
     color: '#7C3AED',
-    backgroundColor: '#F3E8FF',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

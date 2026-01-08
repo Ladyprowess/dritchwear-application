@@ -232,23 +232,28 @@ const fetchProductsWithReviews = async () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{profile?.full_name || 'Dritchwear Customer'}</Text>
-          </View>
-          
-          <LinearGradient
-            colors={['#7C3AED', '#3B82F6']}
-            style={styles.walletCard}
-          >
-            <View style={styles.walletContent}>
-              <Wallet size={20} color="#FFFFFF" />
-              <Text style={styles.walletBalance}>
-                {getWalletBalance()}
-              </Text>
-            </View>
-          </LinearGradient>
-        </View>
+  <View style={styles.userInfo}>
+    <Text style={styles.greeting}>Welcome back,</Text>
+
+    <Text
+      style={styles.userName}
+      numberOfLines={1}
+      ellipsizeMode="tail"
+    >
+      {profile?.full_name || 'Dritchwear Customer'}
+    </Text>
+  </View>
+
+  <View style={styles.walletWrapper}>
+    <LinearGradient colors={['#7C3AED', '#3B82F6']} style={styles.walletCard}>
+      <View style={styles.walletContent}>
+        <Wallet size={20} color="#FFFFFF" />
+        <Text style={styles.walletBalance}>{getWalletBalance()}</Text>
+      </View>
+    </LinearGradient>
+  </View>
+</View>
+
 
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
@@ -401,10 +406,17 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginTop: 2,
   },
+  userInfo: {
+    flex: 1,
+    paddingRight: 12, // space before wallet card
+  },
+  
   walletCard: {
     borderRadius: 12,
     padding: 1,
+    flexShrink: 0, // ✅ wallet never shrinks
   },
+  
   walletContent: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 11,
@@ -508,9 +520,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#1F2937',
-    marginBottom: 4,
     lineHeight: 18,
+  
+    // ✅ reserve space for exactly 2 lines always (18 * 2)
+    height: 36,
+  
+    // keep spacing below name consistent
+    marginBottom: 6,
   },
+  
   productPrice: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',

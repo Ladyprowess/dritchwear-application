@@ -33,7 +33,7 @@ export async function signUp({ email, password, fullName, phone }: AuthCredentia
           phone: phone,
         },
         // Use dritchwear.com domain for email confirmation
-        emailRedirectTo: `https://dritchwear.com/auth/confirm-email`,
+        emailRedirectTo: 'dritchwear://auth/callback',
       },
     });
 
@@ -171,7 +171,7 @@ export async function resendConfirmation(email: string) {
       email: email,
       options: {
         // Use dritchwear.com domain for resent confirmation emails
-        emailRedirectTo: `https://dritchwear.com/auth/confirm-email`,
+        emailRedirectTo: 'dritchwear://auth/callback',
       },
     });
     
