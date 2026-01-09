@@ -45,7 +45,8 @@
     
     "android": {
       "package": "com.dritchwear.app",
-      "versionCode": 16,
+      "versionCode": 17,
+      "softwareKeyboardLayoutMode": "resize",
 
     
       "adaptiveIcon": {

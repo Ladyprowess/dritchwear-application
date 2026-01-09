@@ -6,7 +6,6 @@ import { Home, ShoppingBag, User, Bell, Search, ShoppingCart } from 'lucide-reac
 import { useCart } from '@/contexts/CartContext';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 
 
 function CartTabIcon({ size, color }: { size: number; color: string }) {
@@ -111,29 +110,21 @@ export default function CustomerLayout() {
     checkNotifications();
 
     // ✅ Set up real-time subscription to listen for new notifications
-    const channel = supabase
-  .channel(`notifications-${user.id}`)
+    const userChannel = supabase
+  .channel(`notifications-user-${user.id}`)
   .on(
     'postgres_changes',
     {
       event: 'INSERT',
       schema: 'public',
       table: 'notifications',
-      // ✅ no filter here
+      filter: `user_id=eq.${user.id}`,
     },
     async (payload) => {
       const n = payload.new as any;
-
-      // ✅ only react to:
-      // - notifications sent to this user
-      // - broadcast notifications (user_id is null)
-      if (n.user_id !== user.id && n.user_id !== null) return;
-
-      console.log('🔔 REALTIME FIRED:', n);
+      console.log('🔔 REALTIME (USER):', n);
 
       setShowBanner(true);
-
-      // safer than +1 (keeps badge correct)
       setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
 
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
@@ -142,36 +133,42 @@ export default function CustomerLayout() {
       await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
     }
   )
+  .subscribe((status) => console.log('📡 User channel:', status));
+
+const broadcastChannel = supabase
+  .channel(`notifications-broadcast-${user.id}`)
   .on(
     'postgres_changes',
     {
-      event: 'UPDATE',
+      event: 'INSERT',
       schema: 'public',
       table: 'notifications',
-      // ✅ no filter here too
+      filter: 'user_id=is.null',
     },
     async (payload) => {
       const n = payload.new as any;
-      if (n.user_id !== user.id && n.user_id !== null) return;
+      console.log('🔔 REALTIME (BROADCAST):', n);
 
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .or(`user_id.eq.${user.id},user_id.is.null`)
-        .eq('is_read', false);
+      setShowBanner(true);
+      setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
 
-      setUnreadCount(count || 0);
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = setTimeout(() => setShowBanner(false), 6000);
+
+      await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
     }
   )
-  .subscribe();
+  .subscribe((status) => console.log('📡 Broadcast channel:', status));
+
 
   
 
     // Cleanup subscription on unmount
     return () => {
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-      supabase.removeChannel(channel);
-    };
+      supabase.removeChannel(userChannel);
+      supabase.removeChannel(broadcastChannel);
+    };    
     
   }, [user]);
 

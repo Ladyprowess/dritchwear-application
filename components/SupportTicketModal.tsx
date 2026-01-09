@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Send, User, Clock, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
@@ -277,53 +277,60 @@ if (isAdmin) {
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {ticket.subject}
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              {ticket.user_profile?.full_name || ticket.user_profile?.email || 'Unknown'}
-            </Text>
-          </View>
-          <Pressable style={styles.closeButton} onPress={onClose}>
-            <X size={24} color="#1F2937" />
-          </Pressable>
-        </View>
+    visible={visible}
+    animationType="slide"
+    presentationStyle="fullScreen"
+    onRequestClose={onClose}
+  >
+   <KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+>
 
-        {/* Ticket Info */}
-        <View style={styles.ticketInfo}>
-          <View style={styles.ticketMeta}>
-            <View style={[styles.statusBadge, { backgroundColor: `${currentStatus?.color}20` }]}>
-              {currentStatus && <currentStatus.icon size={12} color={currentStatus.color} />}
-              <Text style={[styles.statusText, { color: currentStatus?.color }]}>
-                {currentStatus?.label}
+
+        <SafeAreaView style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {ticket.subject}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {ticket.user_profile?.full_name || ticket.user_profile?.email || 'Unknown'}
               </Text>
             </View>
-            
-            <View style={[styles.priorityBadge, { backgroundColor: `${currentPriority?.color}20` }]}>
-              <Text style={[styles.priorityText, { color: currentPriority?.color }]}>
-                {currentPriority?.label} Priority
-              </Text>
-            </View>
+            <Pressable style={styles.closeButton} onPress={onClose}>
+              <X size={24} color="#1F2937" />
+            </Pressable>
           </View>
-
-          {ticket.support_categories && (
-            <Text style={styles.categoryText}>
-              Category: {ticket.support_categories.name}
-            </Text>
-          )}
-        </View>
-
-        {/* Admin Controls */}
-        {isAdmin && (
+  
+          {/* Ticket Info */}
+          <View style={styles.ticketInfo}>
+            <View style={styles.ticketMeta}>
+              <View style={[styles.statusBadge, { backgroundColor: `${currentStatus?.color}20` }]}>
+                {currentStatus && <currentStatus.icon size={12} color={currentStatus.color} />}
+                <Text style={[styles.statusText, { color: currentStatus?.color }]}>
+                  {currentStatus?.label}
+                </Text>
+              </View>
+  
+              <View style={[styles.priorityBadge, { backgroundColor: `${currentPriority?.color}20` }]}>
+                <Text style={[styles.priorityText, { color: currentPriority?.color }]}>
+                  {currentPriority?.label} Priority
+                </Text>
+              </View>
+            </View>
+  
+            {ticket.support_categories && (
+              <Text style={styles.categoryText}>
+                Category: {ticket.support_categories.name}
+              </Text>
+            )}
+          </View>
+  
+          {/* Admin Controls */}
+          {isAdmin && (
           <View style={styles.adminControls}>
             <Text style={styles.controlsTitle}>Admin Controls</Text>
             <View style={styles.controlsRow}>
@@ -385,60 +392,69 @@ if (isAdmin) {
           </View>
         )}
 
-        {/* Messages */}
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.messagesContainer}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        >
-          {/* Initial Description */}
-          <View style={styles.initialMessage}>
-            <Text style={styles.initialMessageTitle}>Original Request</Text>
-            <Text style={styles.initialMessageText}>{ticket.description}</Text>
-            <Text style={styles.initialMessageTime}>
-              {formatDate(ticket.created_at)}
-            </Text>
+
+          {/* Messages */}
+<View style={{ flex: 1 }}>
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 140 }}
+        onContentSizeChange={() =>
+          scrollViewRef.current?.scrollToEnd({ animated: true })
+        }
+      >
+        <View style={styles.initialMessage}>
+          <Text style={styles.initialMessageTitle}>Original Request</Text>
+          <Text style={styles.initialMessageText}>{ticket.description}</Text>
+          <Text style={styles.initialMessageTime}>
+            {formatDate(ticket.created_at)}
+          </Text>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading messages...</Text>
           </View>
-
-          {/* Chat Messages */}
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading messages...</Text>
-            </View>
-          ) : (
-            messages.map(renderMessage)
-          )}
-        </ScrollView>
-
-        {/* Message Input */}
-        {ticket.status !== 'closed' && (
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.inputContainer}
-          >
-            <View style={styles.messageInputContainer}>
-              <TextInput
-                style={styles.messageInput}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                placeholder="Type your message..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                maxLength={1000}
-              />
-              <Pressable
-                style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-                onPress={sendMessage}
-                disabled={!newMessage.trim() || sending}
-              >
-                <Send size={20} color="#FFFFFF" />
-              </Pressable>
-            </View>
-          </KeyboardAvoidingView>
+        ) : (
+          messages.map(renderMessage)
         )}
-      </SafeAreaView>
-    </Modal>
+      </ScrollView>
+    </View>
+  </TouchableWithoutFeedback>
+</View>
+
+          {/* Message Input */}
+          {ticket.status !== 'closed' && (
+            <View style={styles.inputContainer}>
+              <View style={styles.messageInputContainer}>
+                <TextInput
+                  style={styles.messageInput}
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                  placeholder="Type your message..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  maxLength={1000}
+                />   
+                <Pressable
+                  style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
+                  onPress={sendMessage}
+                  disabled={!newMessage.trim() || sending}
+                >
+                  <Send size={20} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </SafeAreaView>
+      
+    </KeyboardAvoidingView>
+  </Modal>
+  
   );
 }
 
@@ -640,6 +656,13 @@ const styles = StyleSheet.create({
   adminBadge: {
     color: '#7C3AED',
   },
+  inputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingBottom: Platform.OS === 'android' ? 8 : 0,
+  },
+  
   messageTime: {
     fontSize: 10,
     fontFamily: 'Inter-Regular',
@@ -653,11 +676,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     lineHeight: 20,
-  },
-  inputContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
   },
   messageInputContainer: {
     flexDirection: 'row',
