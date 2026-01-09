@@ -20,6 +20,8 @@ export default function CheckoutScreen() {
   const [items, setItems] = useState<CartItem[]>([]);
   const { appliedPromo } = useCart();
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryState, setDeliveryState] = useState('');
+const [deliveryCountry, setDeliveryCountry] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPaystack, setShowPaystack] = useState(false);
   const [showPayPal, setShowPayPal] = useState(false);
@@ -32,12 +34,25 @@ const [addressPromptHandled, setAddressPromptHandled] = useState(false);
 
 const handleUseDefaultAddress = () => {
   setDeliveryAddress(defaultAddress);
+
+  const parts = defaultAddress.split(',').map(p => p.trim()).filter(Boolean);
+
+  // last two parts become state + country (simple rule)
+  const maybeCountry = parts[parts.length - 1] || '';
+  const maybeState = parts[parts.length - 2] || '';
+
+  setDeliveryState(maybeState);
+  setDeliveryCountry(maybeCountry);
+
   setShowAddressPrompt(false);
   setAddressPromptHandled(true);
 };
 
+
 const handleChangeAddress = () => {
-  setDeliveryAddress(''); // user will type manually
+  setDeliveryAddress('');
+  setDeliveryState('');
+  setDeliveryCountry('');
   setShowAddressPrompt(false);
   setAddressPromptHandled(true);
 };
@@ -113,14 +128,28 @@ const handleChangeAddress = () => {
 
   // Check if delivery address is filled
   const hasDeliveryAddress = () => {
-    return deliveryAddress.trim().length > 0;
+    return (
+      deliveryAddress.trim().length > 0 &&
+      deliveryState.trim().length > 0 &&
+      deliveryCountry.trim().length > 0
+    );
   };
 
+  const getFullDeliveryAddress = () => {
+    return `${deliveryAddress.trim()}, ${deliveryState.trim()}, ${deliveryCountry.trim()}`;
+  };
+
+  
+
   const handleOrder = async (paymentMethod: 'wallet' | 'card' | 'paypal') => {
-    if (!deliveryAddress.trim()) {
-      Alert.alert('Delivery Address Required', 'Please enter your delivery address');
+    if (!deliveryAddress.trim() || !deliveryState.trim() || !deliveryCountry.trim()) {
+      Alert.alert(
+        'Delivery Address Required',
+        'Please enter your delivery address, state, and country.'
+      );
       return;
     }
+    
 
     if (!user || !profile) {
       Alert.alert('Authentication Required', 'Please sign in to place an order');
@@ -134,8 +163,12 @@ const handleChangeAddress = () => {
       const subtotalNGN = getSubtotalInNGN();
       const discountNGN = appliedPromo ? subtotalNGN * appliedPromo.discount : 0;
       const discountedSubtotalNGN = subtotalNGN - discountNGN;
+      const fullDeliveryAddress = getFullDeliveryAddress();
+
+
       
-      const orderTotals = calculateOrderTotal(discountedSubtotalNGN, deliveryAddress, 'NGN');
+      const orderTotals = calculateOrderTotal(discountedSubtotalNGN, fullDeliveryAddress, 'NGN');
+
 
       // For wallet payment, check balance
       if (paymentMethod === 'wallet') {
@@ -170,7 +203,10 @@ const handleChangeAddress = () => {
             size: item.size,
             color: item.color,
           })),
-          delivery_address: deliveryAddress.trim(),
+          delivery_address: fullDeliveryAddress,
+          delivery_state: deliveryState.trim(),
+delivery_country: deliveryCountry.trim(),
+
           payment_method: paymentMethod,
           currency: paymentCurrency,
           original_amount: paymentAmount,
@@ -209,6 +245,10 @@ description: orderNote.trim() || null,
         color: item.color,
       }));
 
+
+      const fullDeliveryAddress = getFullDeliveryAddress();
+
+
       // First validate stock availability using the database function
       const { error: stockValidationError } = await supabase.rpc('validate_stock_availability', {
         order_items: orderItems
@@ -232,7 +272,10 @@ description: orderNote.trim() || null,
           payment_method: 'wallet',
           payment_status: 'paid',
           order_status: 'pending',
-          delivery_address: deliveryAddress.trim(),
+          delivery_address: fullDeliveryAddress,
+          delivery_state: deliveryState.trim(),
+delivery_country: deliveryCountry.trim(),
+
           currency: 'NGN',
           promo_code: appliedPromo?.code || null,
 promo_code_id: appliedPromo?.promoId || null,
@@ -343,14 +386,16 @@ notes: orderNote.trim() || null,
           payment_status: 'paid',
           order_status: 'pending',
           delivery_address: orderData.delivery_address,
+          delivery_state: orderData.delivery_state,
+          delivery_country: orderData.delivery_country,
           currency: orderData.currency,
           original_amount: orderData.original_amount,
           promo_code: orderData.appliedPromo?.code || null,
-promo_code_id: orderData.appliedPromo?.promoId || null,
-
+          promo_code_id: orderData.appliedPromo?.promoId || null,
           discount_amount: orderData.discountAmount || 0,
           notes: orderNote.trim() || null,
         })
+        
         .select()
         .single();
 
@@ -401,8 +446,12 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
   const discountedSubtotalNGN = subtotalNGN - discountNGN;
   
   // Only calculate delivery fee if address is provided
-  const orderTotals = hasDeliveryAddress()
-  ? calculateOrderTotal(discountedSubtotalNGN, deliveryAddress, 'NGN')
+  const composedAddress = hasDeliveryAddress() ? getFullDeliveryAddress() : '';
+
+
+
+const orderTotals = hasDeliveryAddress()
+  ? calculateOrderTotal(discountedSubtotalNGN, composedAddress, 'NGN')
   : {
       subtotal: discountedSubtotalNGN,
       serviceFee: discountedSubtotalNGN * 0.02,
@@ -412,7 +461,7 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
       total: discountedSubtotalNGN + (discountedSubtotalNGN * 0.02) + 0,
       currency: 'NGN',
     };
-
+    
   
   // Convert to user currency for display
   const displayTotals = {
@@ -475,21 +524,47 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
           </View>
 
           {/* Delivery Address */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Delivery Address</Text>
-            <View style={styles.addressCard}>
-              <MapPin size={20} color="#7C3AED" />
-              <TextInput
-                style={styles.addressInput}
-                value={deliveryAddress}
-                onChangeText={setDeliveryAddress}
-                placeholder="Enter your delivery address"
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </View>
+          {/* Delivery Address */}
+<View style={styles.section}>
+  <Text style={styles.sectionTitle}>Delivery Address</Text>
+
+  {/* Address line */}
+  <View style={styles.addressCard}>
+    <MapPin size={20} color="#7C3AED" />
+    <TextInput
+      style={styles.addressInput}
+      value={deliveryAddress}
+      onChangeText={setDeliveryAddress}
+      placeholder="Enter delivery address (street, area, etc.)"
+      placeholderTextColor="#9CA3AF"
+      multiline
+      numberOfLines={3}
+    />
+  </View>
+
+  {/* State */}
+  <View style={[styles.addressCard, { marginTop: 10 }]}>
+    <TextInput
+      style={[styles.addressInput, { marginLeft: 0, minHeight: 50 }]}
+      value={deliveryState}
+      onChangeText={setDeliveryState}
+      placeholder="State (required)"
+      placeholderTextColor="#9CA3AF"
+    />
+  </View>
+
+  {/* Country */}
+  <View style={[styles.addressCard, { marginTop: 10 }]}>
+    <TextInput
+      style={[styles.addressInput, { marginLeft: 0, minHeight: 50 }]}
+      value={deliveryCountry}
+      onChangeText={setDeliveryCountry}
+      placeholder="Country (required)"
+      placeholderTextColor="#9CA3AF"
+    />
+  </View>
+</View>
+
 
           {/* Order Totals */}
           <View style={styles.section}>
