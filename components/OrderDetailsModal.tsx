@@ -7,7 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProductReviews from './ProductReviews';
 import { formatCurrency, convertFromNGN, convertToNGN } from '@/lib/currency';
 import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 
 interface OrderItem {
   product_id: string;
@@ -101,28 +102,22 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
 
   const downloadImage = async (imageUrl: string) => {
     try {
-      // Request only the necessary permissions (no audio)
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission denied', 'You need to allow access to save images.');
+      const fileName = imageUrl.split('/').pop() || `logo_${Date.now()}.png`;
+      const fileUri = FileSystem.documentDirectory + fileName;
+  
+      const downloaded = await FileSystem.downloadAsync(imageUrl, fileUri);
+  
+      // Let user save/share (WhatsApp, Files, Drive, etc.)
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(downloaded.uri);
         return;
       }
   
-      const fileName = imageUrl.split('/').pop() || 'logo.png';
-      const fileUri = FileSystem.documentDirectory + fileName;
-  
-      // Download the file
-      const downloaded = await FileSystem.downloadAsync(imageUrl, fileUri);
-      
-      // Save to media library
-      const asset = await MediaLibrary.createAssetAsync(downloaded.uri);
-      await MediaLibrary.createAlbumAsync('Downloads', asset, false);
-  
-      Alert.alert('Success', 'The logo has been saved to your Downloads folder.');
+      Alert.alert('Saved', `Logo saved to: ${downloaded.uri}`);
     } catch (error) {
       console.error('Download failed:', error);
-      Alert.alert('Download failed', 'Could not save the image. Please try again.');
+      Alert.alert('Download failed', 'Could not download the logo. Please try again.');
     }
   };
   

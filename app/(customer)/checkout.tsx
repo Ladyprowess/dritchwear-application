@@ -529,7 +529,7 @@ promo_code_id: orderData.appliedPromo?.promoId || null,
               </View>
 
               <View style={styles.totalRow}>
-  <Text style={styles.totalLabel}>Tax</Text>
+  <Text style={styles.totalLabel}>VAT (7.5%)</Text>
   <Text style={styles.totalValue}>
     {formatCurrency(displayTotals.tax, userCurrency)}
   </Text>

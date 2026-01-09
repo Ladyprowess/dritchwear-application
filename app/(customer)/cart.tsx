@@ -443,7 +443,7 @@ const validateExistingPromo = async () => {
             <Text style={styles.summaryNote}>Calculated at checkout</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax</Text>
+            <Text style={styles.summaryLabel}>VAT</Text>
             <Text style={styles.summaryNote}>Calculated at checkout</Text>
           </View>
           

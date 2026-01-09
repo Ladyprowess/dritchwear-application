@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Dritchwear",
-    "slug": "dritch-wear",
+    "slug": "dritchwear",
     "version": "1.0.0",
     "orientation": "portrait",
 
@@ -45,7 +45,7 @@
     
     "android": {
       "package": "com.dritchwear.app",
-      "versionCode": 17,
+      "versionCode": 20,
       "softwareKeyboardLayoutMode": "resize",
 
     
@@ -55,13 +55,14 @@
       },
 
       "permissions": [
-        "NOTIFICATIONS",
-        "READ_MEDIA_IMAGES",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_EXTERNAL_STORAGE",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
-      ],
+  "NOTIFICATIONS",
+  "READ_MEDIA_IMAGES",
+  "READ_MEDIA_AUDIO",
+  "WRITE_EXTERNAL_STORAGE",
+  "READ_EXTERNAL_STORAGE",
+  "RECEIVE_BOOT_COMPLETED",
+  "VIBRATE"
+],
 
       "useNextNotificationsApi": true,
       "googleServicesFile": "./google-services.json"
@@ -123,12 +124,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "99a85905-b370-4a58-b525-5de48d3b5568"
+        "projectId": "a4790542-c5a5-49ed-9721-562bb575964d"
       },
       "EXPO_PUBLIC_PAYPAL_CLIENT_ID": "enabled"
     },
 
-    "owner": "ladyprowess",
+    "owner": "ladyprow",
 
     "runtimeVersion": {
       "policy": "appVersion"

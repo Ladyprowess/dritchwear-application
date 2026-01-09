@@ -96,19 +96,19 @@ export function getTaxRateByLocation(
 ): number {
   const loc = location?.toLowerCase() || '';
 
-  // 🇳🇬 Nigeria (20% as you requested)
+  // 🇳🇬 Nigeria (7.5% as you requested)
   if (currency === 'NGN') {
-    return 0.20;
+    return 0.075;
   }
 
   // 🇬🇧 UK
-  if (currency === 'GBP') return 0.20;
+  if (currency === 'GBP') return 0.075;
 
   // 🇪🇺 EU
-  if (currency === 'EUR') return 0.20;
+  if (currency === 'EUR') return 0.075;
 
   // 🇺🇸 US (simplified)
-  if (currency === 'USD') return 0.07;
+  if (currency === 'USD') return 0.075;
 
   // Default: no tax
   return 0;
