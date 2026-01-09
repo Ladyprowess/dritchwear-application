@@ -34,9 +34,13 @@ export default function RegisterScreen() {
   
     // If user didn't type a country code, assume Nigeria (+234)
     if (!phoneValue.startsWith('+')) {
-      if (phoneValue.startsWith('0')) phoneValue = phoneValue.slice(1);
-      phoneValue = `+234${phoneValue}`;
+      Alert.alert(
+        'Invalid Phone Number',
+        'Please include your country code (e.g. +2348012345678, +14155552671).'
+      );
+      return;
     }
+    
   
     // Global E.164 validation
     if (!/^\+[1-9]\d{9,14}$/.test(phoneValue)) {

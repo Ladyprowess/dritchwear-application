@@ -4,8 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Home, ShoppingBag, User, Bell, Search, ShoppingCart } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 
 
 function CartTabIcon({ size, color }: { size: number; color: string }) {
@@ -56,6 +58,13 @@ export default function CustomerLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
   const bannerTimerRef = useRef<any>(null);
+  const insets = useSafeAreaInsets();
+
+  const bottomInset =
+    Platform.OS === 'android' ? Math.max(insets.bottom, 12) : insets.bottom;
+
+  const TAB_BAR_BASE_HEIGHT = 90;
+
 
 
   if (loading) return null;
@@ -184,10 +193,11 @@ const broadcastChannel = supabase
             backgroundColor: '#FFFFFF',
             borderTopWidth: 1,
             borderTopColor: '#E5E7EB',
-            paddingBottom: 8,
             paddingTop: 8,
-            height: 80,
+            paddingBottom: 8 + bottomInset,
+            height: TAB_BAR_BASE_HEIGHT + bottomInset,
           },
+          
           tabBarLabelStyle: {
             fontSize: 12,
             fontFamily: 'Inter-Medium',
@@ -251,12 +261,16 @@ const broadcastChannel = supabase
       {/* ✅ Bottom banner overlay (OUTSIDE Tabs) */}
       {showBanner && (
         <Pressable
-          style={styles.bottomBanner}
-          onPress={() => {
-            setShowBanner(false);
-            router.push('/(customer)/notifications');
-          }}
-        >
+        style={[
+          styles.bottomBanner,
+          { bottom: TAB_BAR_BASE_HEIGHT + bottomInset + 10 },
+        ]}
+        onPress={() => {
+          setShowBanner(false);
+          router.push('/(customer)/notifications');
+        }}
+      >
+      
           <Text style={styles.bannerText}>
             You have {unreadCount} new notification{unreadCount > 1 ? 's' : ''}
           </Text>
@@ -309,7 +323,6 @@ const styles = StyleSheet.create({
 
   bottomBanner: {
     position: 'absolute',
-    bottom: 90, // above the tab bar
     left: 16,
     right: 16,
     backgroundColor: '#1F2937',
@@ -325,6 +338,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  
   bannerText: {
     color: '#FFFFFF',
     fontSize: 14,
