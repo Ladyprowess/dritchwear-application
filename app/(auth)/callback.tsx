@@ -8,30 +8,53 @@ export default function AuthCallbackScreen() {
   const router = useRouter();
 
   useEffect(() => {
+    const getHashParams = (url: string) => {
+      const hash = url.split('#')[1];
+      if (!hash) return {} as Record<string, string>;
+      return Object.fromEntries(new URLSearchParams(hash));
+    };
+
     const handleUrl = async (url: string) => {
       const parsed = Linking.parse(url);
+
+      // 1) If Supabase returns ?code=... (PKCE)
       const code = parsed.queryParams?.code as string | undefined;
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-      // No code → go to login
-      if (!code) {
-        router.replace('/(auth)/login');
+        if (error || !data.session) {
+          router.replace('/(auth)/login');
+          return;
+        }
+
+        router.replace('/');
         return;
       }
 
-      // Exchange code for session
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      // 2) If Supabase returns tokens in the URL hash
+      const hashParams = getHashParams(url);
+      const access_token = hashParams.access_token;
+      const refresh_token = hashParams.refresh_token;
 
-      if (error) {
-        router.replace('/(auth)/login');
+      if (access_token && refresh_token) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+
+        if (error || !data.session) {
+          router.replace('/(auth)/login');
+          return;
+        }
+
+        router.replace('/');
         return;
       }
 
-      // If session exists → user is now logged in
-      if (data.session) {
-        router.replace('/'); // your app home
-      } else {
-        router.replace('/(auth)/login');
-      }
+      // 3) Fallback: maybe session already exists
+      const { data } = await supabase.auth.getSession();
+      if (data.session) router.replace('/');
+      else router.replace('/(auth)/login');
     };
 
     Linking.getInitialURL().then((url) => {
@@ -49,4 +72,3 @@ export default function AuthCallbackScreen() {
     </View>
   );
 }
- 

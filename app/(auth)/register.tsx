@@ -22,37 +22,56 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     const { fullName, email, phone, password, confirmPassword } = formData;
-
-    if (!fullName || !email || !password) {
+  
+    if (!fullName || !email || !phone || !password) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
+  
+    // ✅ Clean + normalise phone (Nigeria default) + validate (global)
+    let phoneValue = phone.replace(/[^\d+]/g, '');
 
+  
+    // If user didn't type a country code, assume Nigeria (+234)
+    if (!phoneValue.startsWith('+')) {
+      if (phoneValue.startsWith('0')) phoneValue = phoneValue.slice(1);
+      phoneValue = `+234${phoneValue}`;
+    }
+  
+    // Global E.164 validation
+    if (!/^\+[1-9]\d{9,14}$/.test(phoneValue)) {
+      Alert.alert(
+        'Invalid Phone Number',
+        'Enter a valid phone number. Ensure you type your country code (e.g. +14155552671).'
+      );
+      return;
+    }
+  
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-
+  
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
-
+  
     setLoading(true);
-    const { error, needsConfirmation, email: userEmail } = await signUp({ 
-      email, 
-      password, 
-      fullName, 
-      phone 
+  
+    const { error, needsConfirmation, email: userEmail } = await signUp({
+      email,
+      password,
+      fullName,
+      phone: phoneValue,
     });
-    
+  
     if (error) {
       Alert.alert('Registration Failed', error.message);
     } else if (needsConfirmation) {
-      // Redirect to email confirmation screen
       router.replace({
         pathname: '/(auth)/confirm-email',
-        params: { email: userEmail }
+        params: { email: userEmail },
       });
     } else {
       Alert.alert(
@@ -61,8 +80,10 @@ export default function RegisterScreen() {
         [{ text: 'OK', onPress: () => router.replace('/') }]
       );
     }
+  
     setLoading(false);
   };
+  
 
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -115,17 +136,21 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.phone}
-              onChangeText={(value) => updateFormData('phone', value)}
-              placeholder="Enter your phone number"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="phone-pad"
-              autoComplete="tel"
-            />
+          <Text style={styles.label}>Phone Number *</Text>
+          <TextInput
+  style={styles.input}
+  value={formData.phone}
+  onChangeText={(value) => updateFormData('phone', value)}
+  placeholder="Enter your phone number"
+  placeholderTextColor="#9CA3AF"
+  keyboardType="phone-pad"
+  autoComplete="tel"
+  autoCapitalize="none"
+/>
+
           </View>
+
+          
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password *</Text>

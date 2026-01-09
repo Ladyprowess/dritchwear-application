@@ -15,13 +15,6 @@ export default function ConfirmEmailScreen() {
 
   const email = params.email as string;
 
-  useEffect(() => {
-    // Auto-confirm if we have the necessary tokens from the URL
-    if (params.access_token && params.refresh_token) {
-      handleAutoConfirm();
-    }
-  }, [params]);
-
   const handleAutoConfirm = async () => {
     setLoading(true);
     try {

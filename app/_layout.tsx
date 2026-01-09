@@ -9,7 +9,6 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
-import * as Notifications from 'expo-notifications';
 import 'react-native-url-polyfill/auto';
 import {
   registerForPushNotificationsAsync,
@@ -22,32 +21,19 @@ import Constants from 'expo-constants';
 // Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
 
 // Push notification setup component
 function PushNotificationSetup() {
   const { user, isInitialized } = useAuth();
   const router = useRouter();
-  const listenersRef = useRef<{
-    notificationListener: Notifications.Subscription;
-    responseListener: Notifications.Subscription;
-  } | null>(null);
+  const listenersRef = useRef<any>(null);
+
   const hasSetupRef = useRef(false);
 
   useEffect(() => {
-    // ✅ Wait for auth to initialize
     if (!isInitialized) return;
-
-    // ✅ Only run when user is available
+  
     if (!user?.id) {
-      // Cleanup if user signs out
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
         listenersRef.current = null;
@@ -55,60 +41,71 @@ function PushNotificationSetup() {
       }
       return;
     }
-
-    // ✅ Prevent duplicate setup
+  
     if (hasSetupRef.current) return;
-
+  
     // 🚫 Skip push registration in Expo Go
     if (Constants.appOwnership === 'expo') {
       console.log('ℹ️ Skipping push registration in Expo Go');
       return;
     }
-
+  
     hasSetupRef.current = true;
-
-    // 1) Register + save token
+  
     (async () => {
       try {
+        // ✅ Dynamic import (prevents Expo Go crash)
+        const Notifications = await import('expo-notifications');
+  
+        // ✅ Configure notification behavior (only in dev/standalone builds)
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+          }),
+        });
+  
+        // 1) Register + save token
         const token = await registerForPushNotificationsAsync();
         if (token && user?.id) {
           await savePushTokenToDatabase(user.id, token);
         }
+  
+        // 2) Setup listeners
+        const listeners = setupNotificationListeners(
+          (notification) => {
+            console.log('📱 Notification received:', notification.request.content.title);
+            try {
+              router.setParams({ refresh: String(Date.now()) });
+            } catch (e) {
+              console.log('Could not set params:', e);
+            }
+          },
+          (response) => {
+            const data: any = response.notification.request.content.data || {};
+            const type = String(data.type || '');
+  
+            try {
+              if (type === 'order') {
+                router.push('/(customer)/orders');
+              } else if (type === 'promo') {
+                router.push('/(customer)/shop');
+              } else {
+                router.push('/(customer)/notifications');
+              }
+            } catch (e) {
+              console.log('Could not navigate:', e);
+            }
+          }
+        );
+  
+        listenersRef.current = listeners;
       } catch (error) {
         console.error('Error setting up push notifications:', error);
       }
     })();
-
-    // 2) Setup listeners
-    const listeners = setupNotificationListeners(
-      (notification) => {
-        console.log('📱 Notification received:', notification.request.content.title);
-        try {
-          router.setParams({ refresh: String(Date.now()) });
-        } catch (e) {
-          console.log('Could not set params:', e);
-        }
-      },
-      (response) => {
-        const data: any = response.notification.request.content.data || {};
-        const type = String(data.type || '');
-
-        try {
-          if (type === 'order') {
-            router.push('/(customer)/orders');
-          } else if (type === 'promo') {
-            router.push('/(customer)/shop');
-          } else {
-            router.push('/(customer)/notifications');
-          }
-        } catch (e) {
-          console.log('Could not navigate:', e);
-        }
-      }
-    );
-
-    listenersRef.current = listeners;
-
+  
     return () => {
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
@@ -117,6 +114,7 @@ function PushNotificationSetup() {
       hasSetupRef.current = false;
     };
   }, [user?.id, isInitialized, router]);
+  
 
   return null;
 }

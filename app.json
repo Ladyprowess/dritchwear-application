@@ -4,15 +4,10 @@
     "slug": "dritchwear",
     "version": "1.0.0",
     "orientation": "portrait",
-
     "icon": "./assets/images/icon.png",
-    
-
     "scheme": "dritchwear",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
-    
     "androidStatusBar": {
       "barStyle": "dark-content",
       "backgroundColor": "#000000",
@@ -22,15 +17,11 @@
       "visible": "sticky-immersive",
       "backgroundColor": "#000000"
     },
-
-    
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
-    
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dritchwear.app",
@@ -41,48 +32,39 @@
         "NSUserNotificationsUsageDescription": "Allow Dritchwear to send you notifications about your orders, promotions, and important updates."
       }
     },
-
-    
     "android": {
       "package": "com.dritchwear.app",
       "versionCode": 20,
       "softwareKeyboardLayoutMode": "resize",
-
-    
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-
       "permissions": [
-  "NOTIFICATIONS",
-  "READ_MEDIA_IMAGES",
-  "READ_MEDIA_AUDIO",
-  "WRITE_EXTERNAL_STORAGE",
-  "READ_EXTERNAL_STORAGE",
-  "RECEIVE_BOOT_COMPLETED",
-  "VIBRATE"
-],
-
+        "NOTIFICATIONS",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_AUDIO",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "NOTIFICATIONS",
+        "READ_MEDIA_IMAGES"
+      ],
       "useNextNotificationsApi": true,
       "googleServicesFile": "./google-services.json"
     },
-
-    
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-
-    
     "plugins": [
       "expo-router",
       "expo-font",
       "expo-web-browser",
       "expo-system-ui",
       "@react-native-community/datetimepicker",
-
       [
         "expo-media-library",
         {
@@ -91,8 +73,6 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
-
-      
       [
         "expo-notifications",
         {
@@ -102,7 +82,6 @@
           "mode": "production"
         }
       ],
-
       [
         "expo-build-properties",
         {
@@ -116,11 +95,9 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true
     },
-
     "extra": {
       "router": {},
       "eas": {
@@ -128,15 +105,12 @@
       },
       "EXPO_PUBLIC_PAYPAL_CLIENT_ID": "enabled"
     },
-
     "owner": "ladyprow",
-
     "runtimeVersion": {
       "policy": "appVersion"
     },
-
     "updates": {
-      "url": "https://u.expo.dev/99a85905-b370-4a58-b525-5de48d3b5568"
+      "url": "https://u.expo.dev/a4790542-c5a5-49ed-9721-562bb575964d"
     }
   }
 }

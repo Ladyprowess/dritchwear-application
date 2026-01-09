@@ -24,20 +24,24 @@ export default function WelcomeScreen() {
         <View style={styles.content}>
           {/* Logo/Brand Section */}
           <View style={styles.brandSection}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>D</Text>
-            </View>
+          <View style={styles.logoContainer}>
+  <Image
+    source={require('@/assets/images/logo.png')}
+    style={styles.logo}
+  />
+</View>
+
             <Text style={styles.brandName}>Dritchwear</Text>
-            <Text style={styles.tagline}>Premium Fashion, Delivered</Text>
+            <Text style={styles.tagline}>Wear it. Brand it. Gift it.</Text>
           </View>
 
           {/* Hero Content */}
           <View style={styles.heroSection}>
             <Text style={styles.heroTitle}>
-              Welcome to{'\n'}Your Style Journey
+            Custom Streetwear {'\n'}& Branded Pieces
             </Text>
             <Text style={styles.heroSubtitle}>
-              Discover premium fashion pieces crafted with excellence and delivered with care
+            Made in Nigeria for brands, events, and personal use - shipped worldwide
             </Text>
           </View>
 
@@ -101,11 +105,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
+  
   logoText: {
     fontSize: 36,
     fontFamily: 'Inter-Bold',
@@ -127,7 +132,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   heroTitle: {
-    fontSize: 36,
+    fontSize: 31,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -175,6 +180,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingTop: 20,
   },
+  logo: {
+    width: 52,
+    height: 52,
+    resizeMode: 'contain',
+  },
+  
   feature: {
     alignItems: 'center',
   },

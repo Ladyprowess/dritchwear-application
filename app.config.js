@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
 
   name: 'Dritchwear',
-  slug: 'dritch-wear',
+  slug: 'dritchwear',
   version: '1.0.0',
   orientation: 'portrait',
 
@@ -42,7 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: 'com.dritchwear.app',
     googleServicesFile: './google-services.json',
     softwareKeyboardLayoutMode: 'resize',
-    versionCode: 17,
+    versionCode: 20,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',
