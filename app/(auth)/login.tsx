@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { signIn } from '@/lib/auth';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
+
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -19,8 +21,18 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    const { error, needsConfirmation, email: userEmail } = await signIn({ email, password });
+
+    // 🔥 ensure clean auth state before login
+    await supabase.auth.signOut({ scope: 'local' });
     
+    const { error, needsConfirmation, email: userEmail } =
+      await signIn({ email, password });
+    
+    setLoading(false);
+    
+
+    
+
     if (error) {
       if (needsConfirmation) {
         Alert.alert(

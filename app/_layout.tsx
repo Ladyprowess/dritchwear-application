@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View } from 'react-native';
+import { Platform, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -17,22 +17,38 @@ import {
   cleanupNotificationListeners,
 } from '@/lib/pushNotifications';
 import Constants from 'expo-constants';
+import { supabase } from '@/lib/supabase';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
 
+function AuthBootScreen({ onTryAgain, onGoLogin }: { onTryAgain: () => void; onGoLogin: () => void }) {
+  return (
+    <View style={styles.bootWrap}>
+      <Text style={styles.bootTitle}>Initialising…</Text>
+      <Text style={styles.bootSub}>Restoring your session</Text>
 
-// Push notification setup component
+      <View style={{ height: 18 }} />
+
+      <Pressable style={styles.bootBtn} onPress={onTryAgain}>
+        <Text style={styles.bootBtnText}>Try Again</Text>
+      </Pressable>
+
+      <Pressable style={[styles.bootBtn, styles.bootBtnAlt]} onPress={onGoLogin}>
+        <Text style={[styles.bootBtnText, styles.bootBtnTextAlt]}>Go to Login</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function PushNotificationSetup() {
   const { user, isInitialized } = useAuth();
   const router = useRouter();
   const listenersRef = useRef<any>(null);
-
   const hasSetupRef = useRef(false);
 
   useEffect(() => {
     if (!isInitialized) return;
-  
+
     if (!user?.id) {
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
@@ -41,23 +57,20 @@ function PushNotificationSetup() {
       }
       return;
     }
-  
+
     if (hasSetupRef.current) return;
-  
-    // 🚫 Skip push registration in Expo Go
+
     if (Constants.appOwnership === 'expo') {
       console.log('ℹ️ Skipping push registration in Expo Go');
       return;
     }
-  
+
     hasSetupRef.current = true;
-  
+
     (async () => {
       try {
-        // ✅ Dynamic import (prevents Expo Go crash)
         const Notifications = await import('expo-notifications');
-  
-        // ✅ Configure notification behavior (only in dev/standalone builds)
+
         Notifications.setNotificationHandler({
           handleNotification: async () => ({
             shouldShowAlert: true,
@@ -65,14 +78,12 @@ function PushNotificationSetup() {
             shouldSetBadge: true,
           }),
         });
-  
-        // 1) Register + save token
+
         const token = await registerForPushNotificationsAsync();
         if (token && user?.id) {
           await savePushTokenToDatabase(user.id, token);
         }
-  
-        // 2) Setup listeners
+
         const listeners = setupNotificationListeners(
           (notification) => {
             console.log('📱 Notification received:', notification.request.content.title);
@@ -85,7 +96,7 @@ function PushNotificationSetup() {
           (response) => {
             const data: any = response.notification.request.content.data || {};
             const type = String(data.type || '');
-  
+
             try {
               if (type === 'order') {
                 router.push('/(customer)/orders');
@@ -99,13 +110,13 @@ function PushNotificationSetup() {
             }
           }
         );
-  
+
         listenersRef.current = listeners;
       } catch (error) {
         console.error('Error setting up push notifications:', error);
       }
     })();
-  
+
     return () => {
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
@@ -114,17 +125,55 @@ function PushNotificationSetup() {
       hasSetupRef.current = false;
     };
   }, [user?.id, isInitialized, router]);
-  
 
   return null;
 }
 
 function RootLayoutContent() {
-  const { user, isInitialized } = useAuth();
-  
-  // ✅ Force remount on auth changes to prevent hook order issues
+  const { user, isAdmin, isInitialized, profileLoaded } = useAuth();
+  const router = useRouter();
+
+  const didRouteRef = useRef(false);
+
+  const onTryAgain = async () => {
+    try {
+      didRouteRef.current = false;
+      await supabase.auth.getSession();
+    } catch (e) {
+      console.log('Try again failed:', e);
+    }
+  };
+
+  const onGoLogin = () => {
+    didRouteRef.current = false;
+    router.replace('/(auth)/login');
+  };
+
+  useEffect(() => {
+    if (!isInitialized || !profileLoaded) return;
+    if (didRouteRef.current) return;
+
+    didRouteRef.current = true;
+
+    if (!user?.id) {
+      router.replace('/(auth)');
+      return;
+    }
+
+    if (isAdmin) {
+      router.replace('/(admin)');
+      return;
+    }
+
+    router.replace('/(customer)');
+  }, [isInitialized, profileLoaded, user?.id, isAdmin, router]);
+
+  if (!isInitialized) {
+    return <AuthBootScreen onTryAgain={onTryAgain} onGoLogin={onGoLogin} />;
+  }
+
   const authKey = user?.id || 'signed-out';
-  
+
   return (
     <View key={authKey} style={{ flex: 1 }}>
       <PushNotificationSetup />
@@ -132,7 +181,6 @@ function RootLayoutContent() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#F9FAFB' },
-
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -141,18 +189,12 @@ function RootLayoutContent() {
         <Stack.Screen name="+not-found" />
       </Stack>
 
-      <StatusBar
-  style="dark"
-  translucent={false}
-  backgroundColor="#F9FAFB"
-  hidden={false}
-/>
+      <StatusBar style="dark" translucent={false} backgroundColor="#F9FAFB" hidden={false} />
     </View>
   );
 }
 
 export default function RootLayout() {
-  // ✅ Call ALL hooks at the top level, unconditionally
   useFrameworkReady();
 
   const [fontsLoaded, fontError] = useFonts({
@@ -162,7 +204,6 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
   });
 
-  // ✅ All useEffect hooks must also be called unconditionally
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
@@ -171,13 +212,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (Platform.OS === 'android') {
-      // ✅ Use a solid background so bottom tabs don't sit under system navigation
       SystemUI.setBackgroundColorAsync('#F9FAFB');
     }
   }, []);
-  
 
-  // ✅ Show nothing until fonts are ready to prevent hook order issues
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -192,3 +230,45 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  bootWrap: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  bootTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  bootSub: {
+    marginTop: 6,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  bootBtn: {
+    width: '100%',
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  bootBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  bootBtnAlt: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  bootBtnTextAlt: {
+    color: '#111827',
+  },
+});
