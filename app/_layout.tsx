@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
 import 'react-native-url-polyfill/auto';
+import AppLockGate from '@/components/AppLockGate';
 import {
   registerForPushNotificationsAsync,
   savePushTokenToDatabase,
@@ -194,6 +195,8 @@ function RootLayoutContent() {
   );
 }
 
+
+
 export default function RootLayout() {
   useFrameworkReady();
 
@@ -224,7 +227,9 @@ export default function RootLayout() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <AuthProvider>
         <CartProvider>
-          <RootLayoutContent />
+          <AppLockGate>
+            <RootLayoutContent />
+          </AppLockGate>
         </CartProvider>
       </AuthProvider>
     </SafeAreaProvider>

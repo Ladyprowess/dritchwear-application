@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +24,9 @@ import {
 } from 'lucide-react-native';
 import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
+import { isBiometricSupported, getBiometricEnabled, setBiometricEnabled, promptBiometric } from '@/lib/biometrics';
+
+
 
 export default function ProfileScreen() {
   const { profile, refreshProfile } = useAuth();
@@ -42,6 +45,52 @@ export default function ProfileScreen() {
   });
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supported = await isBiometricSupported();
+        const available = supported.hasHardware && supported.isEnrolled;
+
+        setBiometricAvailable(available);
+
+        if (available) {
+          setBiometricOn(await getBiometricEnabled());
+        } else {
+          setBiometricOn(false);
+        }
+      } catch (e) {
+        setBiometricAvailable(false);
+        setBiometricOn(false);
+      }
+    })();
+  }, []);
+
+  const toggleBiometric = async () => {
+    if (!biometricAvailable) {
+      Alert.alert(
+        'Biometrics not available',
+        'Please set up Face ID / Fingerprint on your phone first.'
+      );
+      return;
+    }
+
+    const next = !biometricOn;
+
+    // If turning ON, confirm with biometric first
+    if (next) {
+      const res = await promptBiometric('Enable biometric lock');
+      if (!res.success) return;
+    }
+
+    await setBiometricEnabled(next);
+    setBiometricOn(next);
+
+    Alert.alert('Success', `Biometric lock turned ${next ? 'on' : 'off'}.`);
+  };
+
 
   // Show loading state if profile is not loaded yet
   if (!profile) {
@@ -215,12 +264,24 @@ Thank you.`;
     profile.wallet_balance : 
     convertFromNGN(profile.wallet_balance, profile.preferred_currency);
 
-  const menuItems = [
-    { icon: History, title: 'Wallet History', subtitle: 'View all transactions', onPress: handleWalletHistory },
-    { icon: Lock, title: 'Change Password', subtitle: 'Update your password', onPress: () => setChangingPassword(true) },
-    { icon: Settings, title: 'Settings', subtitle: 'App preferences', onPress: handleSettings },
-    { icon: HelpCircle, title: 'Help & Support', subtitle: 'Get assistance', onPress: handleHelpSupport },
-  ];
+    const menuItems = [
+      { icon: History, title: 'Wallet History', subtitle: 'View all transactions', onPress: handleWalletHistory },
+      { icon: Lock, title: 'Change Password', subtitle: 'Update your password', onPress: () => setChangingPassword(true) },
+    
+      // 👇 Biometric toggle (only show if device supports it)
+      ...(biometricAvailable
+        ? [{
+            icon: Lock,
+            title: 'Biometric Lock',
+            subtitle: biometricOn ? 'On' : 'Off',
+            onPress: toggleBiometric,
+          }]
+        : []),
+    
+      { icon: Settings, title: 'Settings', subtitle: 'App preferences', onPress: handleSettings },
+      { icon: HelpCircle, title: 'Help & Support', subtitle: 'Get assistance', onPress: handleHelpSupport },
+    ];
+    
 
   return (
     <SafeAreaView style={styles.container}>
