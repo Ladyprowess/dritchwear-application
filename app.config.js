@@ -57,6 +57,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     // ✅ Date picker plugin (required)
     '@react-native-community/datetimepicker',
+    'expo-secure-store',
 
     // ✅ Existing build properties (kept exactly as-is)
     [

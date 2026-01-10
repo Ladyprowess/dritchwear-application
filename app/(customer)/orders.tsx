@@ -70,28 +70,24 @@ export default function CustomerOrdersScreen() {
   
     try {
       const { data: ordersData, error: ordersError } = await supabase
-  .from('orders')
-  .select('*') // <-- start simple first (NO profiles join)
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: false });
-
-console.log('🧾 ORDERS error:', ordersError);
-console.log('🧾 ORDERS data:', ordersData);
-
-if (ordersError) throw ordersError;
-
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
   
-const { data: customData, error: customError } = await supabase
-.from('custom_requests')
-.select('*, invoices(*)') // keep invoices ok
-.eq('user_id', user.id)
-.order('created_at', { ascending: false });
-
-console.log('🧪 CUSTOM error:', customError);
-console.log('🧪 CUSTOM data:', customData);
-
-if (customError) throw customError;
-
+      if (ordersError) throw ordersError;
+  
+      const { data: customData, error: customError } = await supabase
+        .from('custom_requests')
+        .select('*, invoices(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+  
+      if (customError) throw customError;
+  
+      // ✅ IMPORTANT: update state (you were not doing this)
+      setOrders(ordersData || []);
+      setCustomRequests(customData || []);
   
       const allItems = [...(ordersData || []), ...(customData || [])];
       filterOrders(allItems, selectedStatus);
@@ -144,8 +140,7 @@ if (customError) throw customError;
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          console.log('✅ orders change:', payload.eventType);
+        () => {
           clearTimeout(timeout);
           timeout = setTimeout(() => fetchOrders(), 300);
         }
@@ -153,8 +148,16 @@ if (customError) throw customError;
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'custom_requests', filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          console.log('✅ custom_requests change:', payload.eventType);
+        () => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fetchOrders(), 300);
+        }
+      )
+      // ✅ ADD THIS
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'invoices', filter: `user_id=eq.${user.id}` },
+        () => {
           clearTimeout(timeout);
           timeout = setTimeout(() => fetchOrders(), 300);
         }
@@ -166,6 +169,7 @@ if (customError) throw customError;
       supabase.removeChannel(channel);
     };
   }, [user?.id, fetchOrders]);
+  
   
 
   

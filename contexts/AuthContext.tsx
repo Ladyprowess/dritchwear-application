@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
-import { Profile, getCurrentUser, getProfile } from '@/lib/auth';
-import { AppState } from 'react-native';
+// 📁 contexts/AuthContext.tsx
 
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+import { AppState } from 'react-native';
+import { supabase } from '@/lib/supabase';
+import { Profile, getProfile } from '@/lib/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -23,15 +24,14 @@ const AuthContext = createContext<AuthContextType>({
   isInitialized: false,
 });
 
-const hasResetOnResume = React.useRef(false);
-
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
+  // ✅ must be inside component
+  const hasResetOnResume = useRef(false);
 
   const refreshProfile = async () => {
     if (!user) return;
@@ -46,55 +46,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ✅ On resume: NEVER signOut locally just because session is momentarily null
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (state) => {
       if (state !== 'active') return;
-  
-      // Prevent repeated resets
+
       if (hasResetOnResume.current) return;
-  
+
       console.log('🔄 App resumed — checking auth state');
-  
+
       try {
-        const { data } = await supabase.auth.getSession();
-  
-        // 🔥 Only reset if session is clearly broken
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.log('⚠️ getSession error on resume:', error.message);
+        }
+
+        // If no session, just clear UI state (do NOT wipe persisted session storage)
         if (!data.session) {
-          console.log('⚠️ No valid session on resume — resetting local auth');
-  
-          hasResetOnResume.current = true;
-  
-          await supabase.auth.signOut({ scope: 'local' });
-  
+          console.log('⚠️ No session on resume — clearing local state only');
           setUser(null);
           setProfile(null);
-  
           setLoading(false);
           setIsInitialized(true);
+
+          hasResetOnResume.current = false;
+          return;
+        }
+
+        // If session exists, refresh local state
+        if (data.session.user) {
+          console.log('✅ Session exists on resume for:', data.session.user.email);
+          setUser(data.session.user);
+
+          try {
+            const { profile } = await getProfile();
+            setProfile(profile);
+          } catch (err) {
+            console.log('⚠️ Resume profile refresh failed:', err);
+          }
+
+          setLoading(false);
+          setIsInitialized(true);
+          hasResetOnResume.current = false;
         }
       } catch (e) {
-        console.log('⚠️ Auth check failed — resetting local auth');
-  
-        hasResetOnResume.current = true;
-  
-        await supabase.auth.signOut({ scope: 'local' });
-  
+        console.log('⚠️ Auth check failed on resume (no signOut):', e);
         setUser(null);
         setProfile(null);
-  
         setLoading(false);
         setIsInitialized(true);
+        hasResetOnResume.current = false;
       }
     });
-  
+
     return () => {
       hasResetOnResume.current = false;
       sub.remove();
     };
   }, []);
 
-  
-  
+  // ✅ Init auth once on app start (NOT dependent on profile)
   useEffect(() => {
     let mounted = true;
 
@@ -102,7 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const maxRetries = 3;
     let retryTimer: any = null;
 
-    // ✅ FAILSAFE: Never allow infinite loading
     const failSafe = setTimeout(() => {
       if (!mounted) return;
       console.log('⏱️ Failsafe triggered: ending auth loading');
@@ -128,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('❌ Error getting session:', error);
 
-          // Retry logic for network issues
           const msg = (error.message || '').toLowerCase();
           if (retryCount < maxRetries && msg.includes('network')) {
             retryCount++;
@@ -142,7 +152,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          // ✅ End loading if we won't retry
           if (mounted) {
             setLoading(false);
             setIsInitialized(true);
@@ -163,7 +172,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (profileError) {
             console.error('❌ Error loading profile:', profileError);
-            // Don't fail entire auth flow
           }
         } else {
           console.log('ℹ️ No active session found');
@@ -181,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('❌ Error initializing auth:', error);
         if (mounted) {
           setUser(null);
-          // keep profile as null
+          setProfile(null);
           setLoading(false);
           setIsInitialized(true);
         }
@@ -256,9 +264,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (retryTimer) clearTimeout(retryTimer);
       subscription.unsubscribe();
     };
-  }, [profile]);
+  }, []); // ✅ run once
 
-  // Check if user is admin based on email and profile role
+  // Admin check
   const adminEmails = [
     'dritchwear@gmail.com',
     'admin@dritchwear.com',
@@ -303,8 +311,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
