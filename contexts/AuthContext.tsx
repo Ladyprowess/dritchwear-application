@@ -109,16 +109,13 @@ const isCheckingResume = useRef(false);
         }
   
         if (!data?.session) {
-          console.log('⚠️ No session on resume — signing out');
-          await supabase.auth.signOut();
-          await clearLastLoginAt();
-  
-          setUser(null);
-          setProfile(null);
+          console.log('⚠️ No session on resume — not signing out (will wait for auth listener)');
+          // do NOT sign out here
           setLoading(false);
           setIsInitialized(true);
           return;
         }
+        
   
         // ✅ Session exists
         console.log('✅ Session exists on resume for:', data.session.user.email);
@@ -251,13 +248,13 @@ const isCheckingResume = useRef(false);
             console.error('❌ Error loading profile:', profileError);
           }
         } else {
-          console.log('ℹ️ No active session found — signing out');
-          if (mounted) {
-            await supabase.auth.signOut();
-            await clearLastLoginAt();
-            setUser(null);
-            setProfile(null);
-          }
+          console.log('ℹ️ No active session found');
+if (mounted) {
+  // do NOT sign out here
+  setUser(null);
+  setProfile(null);
+}
+
         }
     
         if (mounted) {
