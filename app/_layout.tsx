@@ -134,7 +134,7 @@ function PushNotificationSetup() {
 }
 
 function RootLayoutContent() {
-  const { user, isAdmin, isInitialized, loading } = useAuth();
+  const { user, isAdmin, isInitialized, loading, profileLoaded } = useAuth();
   const router = useRouter();
 
   const didRouteRef = useRef(false);
@@ -170,7 +170,7 @@ function RootLayoutContent() {
   };
 
   useEffect(() => {
-    if (!isInitialized || loading) return;
+    if (!isInitialized || loading || !profileLoaded) return;
     if (didRouteRef.current) return;
   
     didRouteRef.current = true;
@@ -186,12 +186,14 @@ function RootLayoutContent() {
     }
   
     router.replace('/(customer)');
-  }, [isInitialized, loading, user?.id, isAdmin, router]);
+  }, [isInitialized, loading, profileLoaded, user?.id, isAdmin, router]);
+  
   
 
-  if (!isInitialized || loading) {
+  if (!isInitialized || loading || !profileLoaded) {
     return <AuthBootScreen onTryAgain={onTryAgain} onGoLogin={onGoLogin} />;
   }
+  
   
 
   const authKey = user?.id || 'signed-out';

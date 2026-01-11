@@ -15,6 +15,7 @@ interface AuthContextType {
   isAdmin: boolean;
   refreshProfile: () => Promise<void>;
   isInitialized: boolean;
+  profileLoaded: boolean; // ✅ add
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,10 +25,13 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   refreshProfile: async () => {},
   isInitialized: false,
+  profileLoaded: false, // ✅ add
 });
 
+
 const LOGIN_TS_KEY = 'last_login_at';
-const MAX_LOGIN_AGE_DAYS = 30;
+const MAX_LOGIN_AGE_DAYS = 365; // or remove the entire check
+
 
 const daysToMs = (days: number) => days * 24 * 60 * 60 * 1000;
 
@@ -50,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
 
   // ✅ must be inside component
   const profileRef = useRef<Profile | null>(null);
@@ -110,11 +116,14 @@ const isCheckingResume = useRef(false);
   
         if (!data?.session) {
           console.log('⚠️ No session on resume — not signing out (will wait for auth listener)');
-          // do NOT sign out here
+          setUser(null);
+          setProfile(null);
+          setProfileLoaded(true); // ✅ add
           setLoading(false);
           setIsInitialized(true);
           return;
         }
+        
         
   
         // ✅ Session exists
@@ -237,25 +246,40 @@ const isCheckingResume = useRef(false);
           await setLastLoginNow();
 
     
-          try {
-            console.log('📋 Loading user profile...');
-            const { profile } = await getProfile();
-            if (mounted) {
-              setProfile(profile);
-              console.log('✅ Profile loaded successfully');
-            }
-          } catch (profileError) {
-            console.error('❌ Error loading profile:', profileError);
-          }
-        } else {
-          console.log('ℹ️ No active session found');
-if (mounted) {
-  // do NOT sign out here
-  setUser(null);
-  setProfile(null);
+          setProfileLoaded(false);
+
+try {
+  const { profile: dbProfile } = await getProfile();
+
+  if (!dbProfile) {
+    await supabase.from('profiles').upsert({
+      id: session.user.id,
+      email: session.user.email,
+      role: 'customer',
+      preferred_currency: 'NGN',
+      updated_at: new Date().toISOString(),
+    });
+
+    const { profile: created } = await getProfile();
+    if (mounted) setProfile(created ?? null);
+  } else {
+    if (mounted) setProfile(dbProfile);
+  }
+} catch (e) {
+  if (mounted) setProfile(null);
+} finally {
+  if (mounted) setProfileLoaded(true);
 }
 
-        }
+} else {
+  console.log('ℹ️ No active session found');
+  if (mounted) {
+    setUser(null);
+    setProfile(null);
+    setProfileLoaded(true); // ✅ add
+  }
+}
+
     
         if (mounted) {
           setLoading(false);
@@ -290,43 +314,69 @@ if (mounted) {
           case 'SIGNED_OUT':
   setUser(null);
   setProfile(null);
+  setProfileLoaded(true); // ✅ add
   await clearLastLoginAt();
   break;
 
-case 'SIGNED_IN':
-            if (session?.user) {
-              console.log('👋 User signed in:', session.user.email);
-              setUser(session.user);
-              await setLastLoginNow();
 
-              try {
-                const { profile } = await getProfile();
-                setProfile(profile);
-                console.log('✅ Profile loaded after sign in');
-              } catch (err) {
-                console.error('❌ Error loading profile after sign in:', err);
-              }
-            }
-            break;
+  case 'SIGNED_IN':
+    if (session?.user) {
+      console.log('👋 User signed in:', session.user.email);
+      setUser(session.user);
+      await setLastLoginNow();
+  
+      setProfileLoaded(false); // ✅ start
+  
+      try {
+        const { profile } = await getProfile();
+  
+        if (!profile) {
+          await supabase.from('profiles').upsert({
+            id: session.user.id,
+            email: session.user.email,
+            role: 'customer',
+            preferred_currency: 'NGN',
+            updated_at: new Date().toISOString(),
+          });
+  
+          const { profile: created } = await getProfile();
+          setProfile(created ?? null);
+        } else {
+          setProfile(profile);
+        }
+  
+        console.log('✅ Profile loaded after sign in');
+      } catch (err) {
+        console.error('❌ Error loading profile after sign in:', err);
+        setProfile(null);
+      } finally {
+        setProfileLoaded(true); // ✅ end
+      }
+    }
+    break;
+  
 
-          case 'TOKEN_REFRESHED':
-            if (session?.user) {
-              console.log('🔄 Token refreshed for user:', session.user.email);
-              setUser(session.user);
-              await setLastLoginNow();
-
-              // Only load profile if missing
-              if (!profileRef.current) {
-
-                try {
-                  const { profile: newProfile } = await getProfile();
-                  setProfile(newProfile);
-                } catch (err) {
-                  console.error('❌ Error loading profile after token refresh:', err);
-                }
-              }
-            }
-            break;
+    case 'TOKEN_REFRESHED':
+      if (session?.user) {
+        setUser(session.user);
+        await setLastLoginNow();
+    
+        // ✅ mark that profile is being resolved
+        if (!profileRef.current) {
+          setProfileLoaded(false);
+          try {
+            const { profile: newProfile } = await getProfile();
+            setProfile(newProfile);
+          } catch (err) {
+            console.error('❌ Error loading profile after token refresh:', err);
+            setProfile(null);
+          } finally {
+            setProfileLoaded(true);
+          }
+        }
+      }
+      break;
+    
 
           case 'PASSWORD_RECOVERY':
             console.log('🔑 Password recovery initiated');
@@ -380,17 +430,18 @@ case 'SIGNED_IN':
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        loading,
-        isAdmin,
-        refreshProfile,
-        isInitialized,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  value={{
+    user,
+    profile,
+    loading,
+    isAdmin,
+    refreshProfile,
+    isInitialized,
+    profileLoaded, // ✅ ADD THIS
+  }}
+>
+  {children}
+</AuthContext.Provider>
   );
 }
 
