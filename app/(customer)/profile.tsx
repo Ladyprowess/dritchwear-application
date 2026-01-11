@@ -47,6 +47,8 @@ export default function ProfileScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricSaving, setBiometricSaving] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -69,28 +71,38 @@ export default function ProfileScreen() {
   }, []);
 
   const toggleBiometric = async () => {
+    if (biometricSaving) return;
+  
     if (!biometricAvailable) {
-      Alert.alert(
-        'Biometrics not available',
-        'Please set up Face ID / Fingerprint on your phone first.'
-      );
+      Alert.alert('Biometrics not available', 'Please set up biometrics on your phone first.');
       return;
     }
-
-    const next = !biometricOn;
-
-    // If turning ON, confirm with biometric first
-    if (next) {
-      const res = await promptBiometric('Enable biometric lock');
-      if (!res.success) return;
+  
+    try {
+      setBiometricSaving(true);
+  
+      const next = !biometricOn;
+  
+      // If turning ON, confirm first
+      if (next) {
+        const res = await promptBiometric('Enable biometric lock');
+        if (!res.success) return;
+      }
+  
+      await setBiometricEnabled(next);
+  
+      // ✅ Read back from storage to confirm the real value
+      const confirmed = await getBiometricEnabled();
+      setBiometricOn(confirmed);
+  
+      Alert.alert('Success', `Biometric lock turned ${confirmed ? 'on' : 'off'}.`);
+    } catch (e) {
+      Alert.alert('Error', 'Could not update biometric lock. Please try again.');
+    } finally {
+      setBiometricSaving(false);
     }
-
-    await setBiometricEnabled(next);
-    setBiometricOn(next);
-
-    Alert.alert('Success', `Biometric lock turned ${next ? 'on' : 'off'}.`);
   };
-
+  
 
   // Show loading state if profile is not loaded yet
   if (!profile) {
@@ -268,19 +280,19 @@ Thank you.`;
       { icon: History, title: 'Wallet History', subtitle: 'View all transactions', onPress: handleWalletHistory },
       { icon: Lock, title: 'Change Password', subtitle: 'Update your password', onPress: () => setChangingPassword(true) },
     
-      // 👇 Biometric toggle (only show if device supports it)
-      ...(biometricAvailable
-        ? [{
-            icon: Lock,
-            title: 'Biometric Lock',
-            subtitle: biometricOn ? 'On' : 'Off',
-            onPress: toggleBiometric,
-          }]
-        : []),
+      {
+        icon: Lock,
+        title: 'Biometric Lock',
+        subtitle: biometricAvailable ? (biometricOn ? 'On' : 'Off') : 'Not set up',
+        onPress: biometricAvailable
+          ? toggleBiometric
+          : () => Alert.alert('Biometrics not available', 'Set up biometrics on your phone first.'),
+      },
     
       { icon: Settings, title: 'Settings', subtitle: 'App preferences', onPress: handleSettings },
       { icon: HelpCircle, title: 'Help & Support', subtitle: 'Get assistance', onPress: handleHelpSupport },
     ];
+    
     
 
   return (

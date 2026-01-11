@@ -5,6 +5,8 @@ import { User } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Profile, getProfile } from '@/lib/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +26,25 @@ const AuthContext = createContext<AuthContextType>({
   isInitialized: false,
 });
 
+const LOGIN_TS_KEY = 'last_login_at';
+const MAX_LOGIN_AGE_DAYS = 30;
+
+const daysToMs = (days: number) => days * 24 * 60 * 60 * 1000;
+
+const setLastLoginNow = async () => {
+  await AsyncStorage.setItem(LOGIN_TS_KEY, Date.now().toString());
+};
+
+const getLastLoginAt = async () => {
+  const v = await AsyncStorage.getItem(LOGIN_TS_KEY);
+  return v ? Number(v) : null;
+};
+
+const clearLastLoginAt = async () => {
+  await AsyncStorage.removeItem(LOGIN_TS_KEY);
+};
+
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -31,7 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // ✅ must be inside component
-  const hasResetOnResume = useRef(false);
+  const profileRef = useRef<Profile | null>(null);
+const isCheckingResume = useRef(false);
+
+
+
 
   const refreshProfile = async () => {
     if (!user) return;
@@ -46,65 +71,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ✅ On resume: NEVER signOut locally just because session is momentarily null
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+  
+
+  // ✅ On resume: if session is missing/broken → sign out fast (no hanging)
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (state) => {
       if (state !== 'active') return;
-
-      if (hasResetOnResume.current) return;
-
+  
+      if (isCheckingResume.current) return;
+      isCheckingResume.current = true;
+  
       console.log('🔄 App resumed — checking auth state');
-
+  
       try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.log('⚠️ getSession error on resume:', error.message);
-        }
-
-        // If no session, just clear UI state (do NOT wipe persisted session storage)
-        if (!data.session) {
-          console.log('⚠️ No session on resume — clearing local state only');
+        // ✅ 1) Enforce 30-day rule on resume
+        const last = await getLastLoginAt();
+        if (last && Date.now() - last > daysToMs(MAX_LOGIN_AGE_DAYS)) {
+          console.log('⏳ Login expired (30 days) — signing out');
+          await supabase.auth.signOut();
+          await clearLastLoginAt();
+  
           setUser(null);
           setProfile(null);
           setLoading(false);
           setIsInitialized(true);
-
-          hasResetOnResume.current = false;
           return;
         }
-
-        // If session exists, refresh local state
-        if (data.session.user) {
-          console.log('✅ Session exists on resume for:', data.session.user.email);
-          setUser(data.session.user);
-
-          try {
-            const { profile } = await getProfile();
-            setProfile(profile);
-          } catch (err) {
-            console.log('⚠️ Resume profile refresh failed:', err);
-          }
-
+  
+        // ✅ 2) If session is missing/broken → sign out immediately
+        const { data, error } = await supabase.auth.getSession();
+  
+        if (error) {
+          console.log('⚠️ getSession error on resume:', error.message);
+        }
+  
+        if (!data?.session) {
+          console.log('⚠️ No session on resume — signing out');
+          await supabase.auth.signOut();
+          await clearLastLoginAt();
+  
+          setUser(null);
+          setProfile(null);
           setLoading(false);
           setIsInitialized(true);
-          hasResetOnResume.current = false;
+          return;
         }
+  
+        // ✅ Session exists
+        console.log('✅ Session exists on resume for:', data.session.user.email);
+        setUser(data.session.user);
+        await setLastLoginNow();
+
+  
+        try {
+          const { profile } = await getProfile();
+          setProfile(profile);
+        } catch (err) {
+          console.log('⚠️ Resume profile refresh failed:', err);
+        }
+  
+        setLoading(false);
+        setIsInitialized(true);
       } catch (e) {
-        console.log('⚠️ Auth check failed on resume (no signOut):', e);
+        console.log('⚠️ Auth check failed on resume — signing out:', e);
+        await supabase.auth.signOut();
+        await clearLastLoginAt();
+  
         setUser(null);
         setProfile(null);
         setLoading(false);
         setIsInitialized(true);
-        hasResetOnResume.current = false;
+      } finally {
+        isCheckingResume.current = false;
       }
     });
-
+  
     return () => {
-      hasResetOnResume.current = false;
+      isCheckingResume.current = false;
       sub.remove();
     };
   }, []);
+  
 
   // ✅ Init auth once on app start (NOT dependent on profile)
   useEffect(() => {
@@ -122,47 +172,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 7000);
 
     const getSessionWithTimeout = async (ms = 6000) => {
-      return (await Promise.race([
+      const res = await Promise.race([
         supabase.auth.getSession(),
-        new Promise((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Session restore timeout')), ms)
         ),
-      ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+      ]);
+    
+      return res as Awaited<ReturnType<typeof supabase.auth.getSession>>;
     };
+    
 
     const initializeAuth = async () => {
       try {
         console.log('🚀 Initializing authentication...');
-
-        const { data: { session }, error } = await getSessionWithTimeout(6000);
-
-        if (error) {
-          console.error('❌ Error getting session:', error);
-
-          const msg = (error.message || '').toLowerCase();
-          if (retryCount < maxRetries && msg.includes('network')) {
-            retryCount++;
-            console.log(`🔄 Retrying session fetch (${retryCount}/${maxRetries})...`);
-
-            retryTimer = setTimeout(() => {
-              if (!mounted) return;
-              initializeAuth();
-            }, 1000 * retryCount);
-
-            return;
-          }
-
+    
+        // ✅ Enforce 30-day rule on cold start
+        const last = await getLastLoginAt();
+        if (last && Date.now() - last > daysToMs(MAX_LOGIN_AGE_DAYS)) {
+          console.log('⏳ Login expired (30 days) — signing out on boot');
+          await supabase.auth.signOut();
+          await clearLastLoginAt();
+    
           if (mounted) {
+            setUser(null);
+            setProfile(null);
             setLoading(false);
             setIsInitialized(true);
           }
           return;
         }
-
+    
+        const { data: { session }, error } = await getSessionWithTimeout(6000);
+    
+        if (error) {
+          console.error('❌ Error getting session:', error);
+    
+          const msg = (error.message || '').toLowerCase();
+          if (retryCount < maxRetries && (msg.includes('network') || msg.includes('timeout'))) {
+            retryCount++;
+            console.log(`🔄 Retrying session fetch (${retryCount}/${maxRetries})...`);
+    
+            retryTimer = setTimeout(() => {
+              if (!mounted) return;
+              initializeAuth();
+            }, 1000 * retryCount);
+    
+            return;
+          }
+    
+          // ✅ wipe broken persisted auth
+          if (mounted) {
+            await supabase.auth.signOut();
+            await clearLastLoginAt();
+    
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+            setIsInitialized(true);
+          }
+          return;
+        }
+    
         if (session?.user && mounted) {
           console.log('✅ Session found for user:', session.user.email);
           setUser(session.user);
+          await setLastLoginNow();
 
+    
           try {
             console.log('📋 Loading user profile...');
             const { profile } = await getProfile();
@@ -174,20 +251,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('❌ Error loading profile:', profileError);
           }
         } else {
-          console.log('ℹ️ No active session found');
+          console.log('ℹ️ No active session found — signing out');
           if (mounted) {
+            await supabase.auth.signOut();
+            await clearLastLoginAt();
             setUser(null);
             setProfile(null);
           }
         }
-
+    
         if (mounted) {
           setLoading(false);
           setIsInitialized(true);
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
+    
+        // ✅ wipe broken persisted auth here too
         if (mounted) {
+          await supabase.auth.signOut();
+          await clearLastLoginAt();
+    
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -195,6 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     };
+    
 
     initializeAuth();
 
@@ -206,15 +291,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         switch (event) {
           case 'SIGNED_OUT':
-            console.log('👋 User signed out');
-            setUser(null);
-            setProfile(null);
-            break;
+  setUser(null);
+  setProfile(null);
+  await clearLastLoginAt();
+  break;
 
-          case 'SIGNED_IN':
+case 'SIGNED_IN':
             if (session?.user) {
               console.log('👋 User signed in:', session.user.email);
               setUser(session.user);
+              await setLastLoginNow();
 
               try {
                 const { profile } = await getProfile();
@@ -230,9 +316,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (session?.user) {
               console.log('🔄 Token refreshed for user:', session.user.email);
               setUser(session.user);
+              await setLastLoginNow();
 
               // Only load profile if missing
-              if (!profile) {
+              if (!profileRef.current) {
+
                 try {
                   const { profile: newProfile } = await getProfile();
                   setProfile(newProfile);

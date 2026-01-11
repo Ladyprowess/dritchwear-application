@@ -42,13 +42,14 @@ function AuthBootScreen({ onTryAgain, onGoLogin }: { onTryAgain: () => void; onG
 }
 
 function PushNotificationSetup() {
-  const { user, isInitialized } = useAuth();
+  const { user, isInitialized, loading } = useAuth();
   const router = useRouter();
   const listenersRef = useRef<any>(null);
   const hasSetupRef = useRef(false);
 
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || loading) return;
+
 
     if (!user?.id) {
       if (listenersRef.current) {
@@ -125,53 +126,73 @@ function PushNotificationSetup() {
       }
       hasSetupRef.current = false;
     };
-  }, [user?.id, isInitialized, router]);
+  }, [user?.id, isInitialized, loading]);
+
+
 
   return null;
 }
 
 function RootLayoutContent() {
-  const { user, isAdmin, isInitialized, profileLoaded } = useAuth();
+  const { user, isAdmin, isInitialized, loading } = useAuth();
   const router = useRouter();
 
   const didRouteRef = useRef(false);
 
   const onTryAgain = async () => {
+    didRouteRef.current = false;
+  
     try {
-      didRouteRef.current = false;
-      await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
+  
+      if (error) {
+        console.log('Try again getSession error:', error.message);
+        return;
+      }
+  
+      // If no session, go to auth immediately
+      if (!data?.session?.user?.id) {
+        router.replace('/(auth)');
+        return;
+      }
+  
+      // If session exists, DO NOT force customer/admin here.
+      // Let your routing effect handle it correctly based on isAdmin.
+      // (The effect will run because didRouteRef was reset.)
     } catch (e) {
       console.log('Try again failed:', e);
     }
   };
-
+  
   const onGoLogin = () => {
     didRouteRef.current = false;
     router.replace('/(auth)/login');
   };
 
   useEffect(() => {
-    if (!isInitialized || !profileLoaded) return;
+    if (!isInitialized || loading) return;
     if (didRouteRef.current) return;
-
+  
     didRouteRef.current = true;
-
+  
     if (!user?.id) {
       router.replace('/(auth)');
       return;
     }
-
+  
     if (isAdmin) {
       router.replace('/(admin)');
       return;
     }
-
+  
     router.replace('/(customer)');
-  }, [isInitialized, profileLoaded, user?.id, isAdmin, router]);
+  }, [isInitialized, loading, user?.id, isAdmin, router]);
+  
 
-  if (!isInitialized) {
+  if (!isInitialized || loading) {
     return <AuthBootScreen onTryAgain={onTryAgain} onGoLogin={onGoLogin} />;
   }
+  
 
   const authKey = user?.id || 'signed-out';
 
