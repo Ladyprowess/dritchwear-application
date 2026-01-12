@@ -324,9 +324,17 @@ try {
           case 'SIGNED_OUT':
   setUser(null);
   setProfile(null);
-  setProfileLoaded(true); // ✅ add
+  setProfileLoaded(true);
   await clearLastLoginAt();
+
+  // 🔐 CLEAR BIOMETRIC STATE
+  await AsyncStorage.multiRemove(
+    (await AsyncStorage.getAllKeys()).filter(k =>
+      k.startsWith('biometric_enabled:')
+    )
+  );
   break;
+
 
 
   case 'SIGNED_IN':
