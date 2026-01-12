@@ -24,7 +24,14 @@ import {
 } from 'lucide-react-native';
 import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
-import { isBiometricSupported, getBiometricEnabled, setBiometricEnabled, promptBiometric } from '@/lib/biometrics';
+import {
+  isBiometricSupported,
+  getBiometricEnabled,
+  setBiometricEnabled,
+  promptBiometric,
+  clearBiometricEnabled, // ✅ add
+} from '@/lib/biometrics';
+
 
 export default function ProfileScreen() {
   const { profile, user, refreshProfile } = useAuth();
@@ -46,6 +53,8 @@ export default function ProfileScreen() {
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricSaving, setBiometricSaving] = useState(false);
+  const { hardSignOut } = useAuth();
+
 
   useEffect(() => {
     (async () => {
@@ -172,8 +181,12 @@ export default function ProfileScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
+            if (user?.id) {
+              await clearBiometricEnabled(user.id); // ✅ reset on logout
+            }
+            await hardSignOut();
           },
+          
         },
       ]
     );
