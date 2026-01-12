@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { Platform, View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
@@ -31,11 +31,19 @@ function AuthBootOverlay({ showStartError }: { showStartError: boolean }) {
   return (
     <View style={styles.bootOverlay}>
       {showStartError ? (
-        <Text style={styles.bootTitle}>
-          Sorry, the app encountered an error while trying to start. Please close and reopen the app.
-        </Text>
+        <>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.bootTitle}>Oops! Something went wrong</Text>
+          <Text style={styles.bootMessage}>
+            There is an error while loading this page.{'\n'}
+            Kindly exit the app and reopen it again.
+          </Text>
+        </>
       ) : (
-        <ActivityIndicator size="small" />
+        <>
+          <ActivityIndicator size="large" color="#7C3AED" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </>
       )}
     </View>
   );
@@ -134,6 +142,7 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
 
   const didRouteRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  const splashHiddenRef = useRef(false);
 
   const [showStartError, setShowStartError] = useState(false);
 
@@ -146,46 +155,72 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
     if (lastUserIdRef.current !== current) {
       lastUserIdRef.current = current;
       didRouteRef.current = false;
+      splashHiddenRef.current = false;
     }
   }, [user?.id]);
 
-  // ✅ boot stuck UI (no signOut here)
-  useEffect(() => {
-    if (!booting || user?.id) {
-      setShowStartError(false);
-      return;
+  // ✅ boot stuck UI - show error after 6 seconds
+  // ✅ boot stuck UI - show error after 6 seconds
+useEffect(() => {
+  if (!booting) {
+    setShowStartError(false);
+    return;
+  }
+
+  const t = setTimeout(() => {
+    // Still stuck loading after 6 seconds
+    if (!isInitialized || loading || !profileLoaded) {
+      setShowStartError(true);
+      // Hide splash to show error
+      if (!splashHiddenRef.current) {
+        splashHiddenRef.current = true;
+        void SplashScreen.hideAsync().catch(() => {});
+      }
     }
+  }, 6000);
 
-    const t = setTimeout(() => {
-      const stillStuck = (!isInitialized || loading || !profileLoaded) && !user?.id;
-      if (stillStuck) setShowStartError(true);
-    }, 8000);
+  return () => clearTimeout(t);
+}, [booting, isInitialized, loading, profileLoaded]);
 
-    return () => clearTimeout(t);
-  }, [booting, isInitialized, loading, profileLoaded, user?.id]);
+// ✅ routing effect (only when booting is false)
+useEffect(() => {
+  if (booting) return;
 
-  // ✅ routing effect (only when booting is false)
-  useEffect(() => {
-    if (booting) return;
+  // if signed in, wait for lock to be confirmed unlocked
+  if (user?.id && lockBlocking !== false) return;
 
-    // if signed in, wait for lock to be confirmed unlocked
-    if (user?.id && lockBlocking !== false) return;
+  if (didRouteRef.current) return;
+  didRouteRef.current = true;
 
-    if (didRouteRef.current) return;
-    didRouteRef.current = true;
+  const routeAndHideSplash = async () => {
+    try {
+      if (!user?.id) {
+        await router.replace('/(auth)');
+      } else if (isAdmin) {
+        await router.replace('/(admin)');
+      } else {
+        await router.replace('/(customer)');
+      }
 
-    if (!user?.id) {
-      router.replace('/(auth)');
-      return;
+      // Hide splash after successful navigation
+      setTimeout(() => {
+        if (!splashHiddenRef.current) {
+          splashHiddenRef.current = true;
+          void SplashScreen.hideAsync().catch(() => {});
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setShowStartError(true);
+      if (!splashHiddenRef.current) {
+        splashHiddenRef.current = true;
+        void SplashScreen.hideAsync().catch(() => {});
+      }
     }
+  };
 
-    if (isAdmin) {
-      router.replace('/(admin)');
-      return;
-    }
-
-    router.replace('/(customer)');
-  }, [booting, user?.id, isAdmin, router, lockBlocking]);
+  routeAndHideSplash();
+}, [booting, user?.id, isAdmin, router, lockBlocking]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -204,8 +239,8 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
         <Stack.Screen name="+not-found" />
       </Stack>
 
-      {/* ✅ Overlay boot screen instead of returning early */}
-      {booting ? <AuthBootOverlay showStartError={showStartError} /> : null}
+      {/* ✅ Overlay boot screen or error screen */}
+      {(booting || showStartError) ? <AuthBootOverlay showStartError={showStartError} /> : null}
 
       <StatusBar style="dark" translucent={false} backgroundColor="#F9FAFB" hidden={false} />
     </View>
@@ -223,12 +258,6 @@ export default function RootLayout() {
   });
 
   const [lockBlocking, setLockBlocking] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      void SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -264,10 +293,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
   bootTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
     color: '#111827',
     textAlign: 'center',
+    marginBottom: 12,
+    fontFamily: 'Inter-Bold',
+  },
+  bootMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontFamily: 'Inter-Regular',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 16,
+    fontFamily: 'Inter-Medium',
   },
 });
