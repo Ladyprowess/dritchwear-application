@@ -1,14 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Redirect, Tabs, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Home, ShoppingBag, User, Bell, Search, ShoppingCart } from 'lucide-react-native';
 import { useCart } from '@/contexts/CartContext';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-
 
 function CartTabIcon({ size, color }: { size: number; color: string }) {
   const { getTotalItems } = useCart();
@@ -19,9 +17,7 @@ function CartTabIcon({ size, color }: { size: number; color: string }) {
       <ShoppingCart size={size} color={color} />
       {itemCount > 0 && (
         <View style={styles.cartBadge}>
-          <Text style={styles.cartBadgeText}>
-            {itemCount > 99 ? '99+' : itemCount.toString()}
-          </Text>
+          <Text style={styles.cartBadgeText}>{itemCount > 99 ? '99+' : itemCount.toString()}</Text>
         </View>
       )}
     </View>
@@ -58,128 +54,149 @@ export default function CustomerLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
   const bannerTimerRef = useRef<any>(null);
+
   const insets = useSafeAreaInsets();
-
-  const bottomInset =
-    Platform.OS === 'android' ? Math.max(insets.bottom, 12) : insets.bottom;
-
+  const bottomInset = Platform.OS === 'android' ? Math.max(insets.bottom, 12) : insets.bottom;
   const TAB_BAR_BASE_HEIGHT = 90;
 
-
-
   if (loading) return null;
-
   if (!user) return <Redirect href="/(auth)/welcome" />;
   if (profile?.role === 'admin') return <Redirect href="/(admin)" />;
 
+  const refreshUnreadCount = useCallback(async () => {
+    if (!user?.id) return;
+
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .or(`user_id.eq.${user.id},user_id.is.null`)
+      .eq('is_read', false);
+
+    if (error) {
+      console.log('❌ refreshUnreadCount error:', error);
+      return;
+    }
+
+    setUnreadCount(count || 0);
+  }, [user?.id]);
+
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     const LAST_SEEN_KEY = `last_seen_notification_time_${user.id}`;
+    let cancelled = false;
 
-    // Initial fetch of notifications
     const checkNotifications = async () => {
-      // Get unread count (badge)
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .or(`user_id.eq.${user.id},user_id.is.null`)
-        .eq('is_read', false);
+      // Badge (source of truth)
+      await refreshUnreadCount();
 
-      setUnreadCount(count || 0);
-
-      // Get the latest notification time
-      const { data: latest } = await supabase
+      // Banner logic (latest notification time)
+      const { data: latest, error: latestErr } = await supabase
         .from('notifications')
         .select('created_at')
         .or(`user_id.eq.${user.id},user_id.is.null`)
         .order('created_at', { ascending: false })
         .limit(1);
 
+      if (latestErr) {
+        console.log('❌ latest notification fetch error:', latestErr);
+        return;
+      }
+
       const latestCreatedAt = latest?.[0]?.created_at;
       if (!latestCreatedAt) return;
 
-      // Compare with last stored time
       const lastSeen = await AsyncStorage.getItem(LAST_SEEN_KEY);
 
-      // First time user runs app: set it, don't show banner
       if (!lastSeen) {
         await AsyncStorage.setItem(LAST_SEEN_KEY, latestCreatedAt);
         return;
       }
 
-      // Show banner ONLY if there is something newer
       if (new Date(latestCreatedAt) > new Date(lastSeen)) {
-        setShowBanner(true);
-        // Update last seen so banner doesn't show again for same notification
+        if (!cancelled) setShowBanner(true);
         await AsyncStorage.setItem(LAST_SEEN_KEY, latestCreatedAt);
+
+        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = setTimeout(() => {
+          if (!cancelled) setShowBanner(false);
+        }, 6000);
       }
     };
 
     checkNotifications();
 
-    // ✅ Set up real-time subscription to listen for new notifications
+    // ✅ Recalculate badge when app returns to foreground (reliable)
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refreshUnreadCount();
+      }
+    });
+
+    // ✅ Real-time: INSERT only (badge increments)
     const userChannel = supabase
-  .channel(`notifications-user-${user.id}`)
-  .on(
-    'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'notifications',
-      filter: `user_id=eq.${user.id}`,
-    },
-    async (payload) => {
-      const n = payload.new as any;
-      console.log('🔔 REALTIME (USER):', n);
+      .channel(`notifications-user-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const n = payload.new as any;
+          console.log('🔔 REALTIME (USER):', n);
 
-      setShowBanner(true);
-      setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
+          if (!cancelled) setShowBanner(true);
+          if (!cancelled) setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
 
-      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-      bannerTimerRef.current = setTimeout(() => setShowBanner(false), 6000);
+          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+          bannerTimerRef.current = setTimeout(() => {
+            if (!cancelled) setShowBanner(false);
+          }, 6000);
 
-      await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
-    }
-  )
-  .subscribe((status) => console.log('📡 User channel:', status));
+          await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
+        }
+      )
+      .subscribe();
 
-const broadcastChannel = supabase
-  .channel(`notifications-broadcast-${user.id}`)
-  .on(
-    'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'notifications',
-      filter: 'user_id=is.null',
-    },
-    async (payload) => {
-      const n = payload.new as any;
-      console.log('🔔 REALTIME (BROADCAST):', n);
+    const broadcastChannel = supabase
+      .channel(`notifications-broadcast-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: 'user_id=is.null',
+        },
+        async (payload) => {
+          const n = payload.new as any;
+          console.log('🔔 REALTIME (BROADCAST):', n);
 
-      setShowBanner(true);
-      setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
+          if (!cancelled) setShowBanner(true);
+          if (!cancelled) setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
 
-      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-      bannerTimerRef.current = setTimeout(() => setShowBanner(false), 6000);
+          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+          bannerTimerRef.current = setTimeout(() => {
+            if (!cancelled) setShowBanner(false);
+          }, 6000);
 
-      await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
-    }
-  )
-  .subscribe((status) => console.log('📡 Broadcast channel:', status));
+          await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
+        }
+      )
+      .subscribe();
 
-
-  
-
-    // Cleanup subscription on unmount
     return () => {
+      cancelled = true;
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+
+      sub.remove();
       supabase.removeChannel(userChannel);
       supabase.removeChannel(broadcastChannel);
-    };    
-    
-  }, [user]);
+    };
+  }, [user?.id, refreshUnreadCount]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -197,7 +214,6 @@ const broadcastChannel = supabase
             paddingBottom: 8 + bottomInset,
             height: TAB_BAR_BASE_HEIGHT + bottomInset,
           },
-          
           tabBarLabelStyle: {
             fontSize: 12,
             fontFamily: 'Inter-Medium',
@@ -212,6 +228,7 @@ const broadcastChannel = supabase
             tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
           }}
         />
+
         <Tabs.Screen
           name="shop"
           options={{
@@ -219,6 +236,7 @@ const broadcastChannel = supabase
             tabBarIcon: ({ size, color }) => <Search size={size} color={color} />,
           }}
         />
+
         <Tabs.Screen
           name="cart"
           options={{
@@ -226,6 +244,7 @@ const broadcastChannel = supabase
             tabBarIcon: ({ size, color }) => <CartTabIcon size={size} color={color} />,
           }}
         />
+
         <Tabs.Screen
           name="orders"
           options={{
@@ -233,6 +252,7 @@ const broadcastChannel = supabase
             tabBarIcon: ({ size, color }) => <ShoppingBag size={size} color={color} />,
           }}
         />
+
         <Tabs.Screen
           name="notifications"
           options={{
@@ -241,7 +261,14 @@ const broadcastChannel = supabase
               <NotificationTabIcon size={size} color={color} unreadCount={unreadCount} />
             ),
           }}
+          listeners={{
+            // ✅ THIS is the key: every time user opens tab, we recalc from DB
+            tabPress: async () => {
+              await refreshUnreadCount();
+            },
+          }}
         />
+
         <Tabs.Screen
           name="profile"
           options={{
@@ -258,19 +285,15 @@ const broadcastChannel = supabase
         <Tabs.Screen name="help-support" options={{ href: null }} />
       </Tabs>
 
-      {/* ✅ Bottom banner overlay (OUTSIDE Tabs) */}
       {showBanner && (
         <Pressable
-        style={[
-          styles.bottomBanner,
-          { bottom: TAB_BAR_BASE_HEIGHT + bottomInset + 10 },
-        ]}
-        onPress={() => {
-          setShowBanner(false);
-          router.push('/(customer)/notifications');
-        }}
-      >
-      
+          style={[styles.bottomBanner, { bottom: TAB_BAR_BASE_HEIGHT + bottomInset + 10 }]}
+          onPress={async () => {
+            setShowBanner(false);
+            await refreshUnreadCount();
+            router.push('/(customer)/notifications');
+          }}
+        >
           <Text style={styles.bannerText}>
             You have {unreadCount} new notification{unreadCount > 1 ? 's' : ''}
           </Text>
@@ -338,7 +361,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  
+
   bannerText: {
     color: '#FFFFFF',
     fontSize: 14,

@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View, Text, Pressable, StyleSheet } from 'react-native';
+import { Platform, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -18,25 +18,23 @@ import {
   cleanupNotificationListeners,
 } from '@/lib/pushNotifications';
 import Constants from 'expo-constants';
-import { supabase } from '@/lib/supabase';
 
 SplashScreen.preventAutoHideAsync();
 
-function AuthBootScreen({ onTryAgain, onGoLogin }: { onTryAgain: () => void; onGoLogin: () => void }) {
+function AuthBootScreen({ showStartError }: { showStartError: boolean }) {
+  if (showStartError) {
+    return (
+      <View style={styles.bootWrap}>
+        <Text style={styles.bootTitle}>
+          Sorry the app encountered an error while trying to start, kindly close and reopen the app to clear error
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.bootWrap}>
-      <Text style={styles.bootTitle}>Initialising…</Text>
-      <Text style={styles.bootSub}>Restoring your session</Text>
-
-      <View style={{ height: 18 }} />
-
-      <Pressable style={styles.bootBtn} onPress={onTryAgain}>
-        <Text style={styles.bootBtnText}>Try Again</Text>
-      </Pressable>
-
-      <Pressable style={[styles.bootBtn, styles.bootBtnAlt]} onPress={onGoLogin}>
-        <Text style={[styles.bootBtnText, styles.bootBtnTextAlt]}>Go to Login</Text>
-      </Pressable>
+      <ActivityIndicator size="small" />
     </View>
   );
 }
@@ -49,7 +47,6 @@ function PushNotificationSetup() {
 
   useEffect(() => {
     if (!isInitialized || loading) return;
-
 
     if (!user?.id) {
       if (listenersRef.current) {
@@ -87,8 +84,7 @@ function PushNotificationSetup() {
         }
 
         const listeners = setupNotificationListeners(
-          (notification) => {
-            console.log('📱 Notification received:', notification.request.content.title);
+          () => {
             try {
               router.setParams({ refresh: String(Date.now()) });
             } catch (e) {
@@ -128,79 +124,68 @@ function PushNotificationSetup() {
     };
   }, [user?.id, isInitialized, loading]);
 
-
-
   return null;
 }
 
-function RootLayoutContent() {
+function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
   const { user, isAdmin, isInitialized, loading, profileLoaded } = useAuth();
   const router = useRouter();
 
   const didRouteRef = useRef(false);
+  const [showStartError, setShowStartError] = useState(false);
 
-  const onTryAgain = async () => {
-    didRouteRef.current = false;
-  
-    try {
-      const { data, error } = await supabase.auth.getSession();
-  
-      if (error) {
-        console.log('Try again getSession error:', error.message);
-        return;
-      }
-  
-      // If no session, go to auth immediately
-      if (!data?.session?.user?.id) {
-        router.replace('/(auth)');
-        return;
-      }
-  
-      // If session exists, DO NOT force customer/admin here.
-      // Let your routing effect handle it correctly based on isAdmin.
-      // (The effect will run because didRouteRef was reset.)
-    } catch (e) {
-      console.log('Try again failed:', e);
+  useEffect(() => {
+    const stillBooting = !isInitialized || loading || !profileLoaded;
+    const hasUser = !!user?.id;
+
+    if (!stillBooting || hasUser) {
+      setShowStartError(false);
+      return;
     }
-  };
-  
-  const onGoLogin = () => {
-    didRouteRef.current = false;
-    router.replace('/(auth)/login');
-  };
+
+    const t = setTimeout(() => {
+      const stillStuck = (!isInitialized || loading || !profileLoaded) && !user?.id;
+      if (stillStuck) setShowStartError(true);
+    }, 8000);
+
+    return () => clearTimeout(t);
+  }, [isInitialized, loading, profileLoaded, user?.id]);
 
   useEffect(() => {
     if (!isInitialized || loading || !profileLoaded) return;
+
+    // ✅ KEY FIX:
+    // If user is signed in, DO NOT route until the lock system tells us it's unlocked.
+    // lockBlocking:
+    // - null => lock state not known yet
+    // - true => locked / blocking
+    // - false => unlocked / allow routing
+    if (user?.id && lockBlocking !== false) return;
+
     if (didRouteRef.current) return;
-  
     didRouteRef.current = true;
-  
+
     if (!user?.id) {
       router.replace('/(auth)');
       return;
     }
-  
+
     if (isAdmin) {
       router.replace('/(admin)');
       return;
     }
-  
+
     router.replace('/(customer)');
-  }, [isInitialized, loading, profileLoaded, user?.id, isAdmin, router]);
-  
-  
+  }, [isInitialized, loading, profileLoaded, user?.id, isAdmin, router, lockBlocking]);
 
   if (!isInitialized || loading || !profileLoaded) {
-    return <AuthBootScreen onTryAgain={onTryAgain} onGoLogin={onGoLogin} />;
+    return <AuthBootScreen showStartError={showStartError} />;
   }
-  
-  
-
-  const authKey = user?.id || 'signed-out';
 
   return (
-    <View key={authKey} style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <PushNotificationSetup />
+
       <Stack
         screenOptions={{
           headerShown: false,
@@ -218,8 +203,6 @@ function RootLayoutContent() {
   );
 }
 
-
-
 export default function RootLayout() {
   useFrameworkReady();
 
@@ -229,6 +212,9 @@ export default function RootLayout() {
     'Inter-SemiBold': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
   });
+
+  // ✅ null means: we don't know yet (treat as blocking for signed-in users)
+  const [lockBlocking, setLockBlocking] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -250,8 +236,8 @@ export default function RootLayout() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <AuthProvider>
         <CartProvider>
-          <AppLockGate>
-            <RootLayoutContent />
+          <AppLockGate onLockedChange={setLockBlocking}>
+            <RootLayoutContent lockBlocking={lockBlocking} />
           </AppLockGate>
         </CartProvider>
       </AuthProvider>
@@ -270,33 +256,6 @@ const styles = StyleSheet.create({
   bootTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
-  },
-  bootSub: {
-    marginTop: 6,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  bootBtn: {
-    width: '100%',
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  bootBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  bootBtnAlt: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  bootBtnTextAlt: {
     color: '#111827',
   },
 });

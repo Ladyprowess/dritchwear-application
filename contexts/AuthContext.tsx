@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextType>({
 
 
 const LOGIN_TS_KEY = 'last_login_at';
-const MAX_LOGIN_AGE_DAYS = 365; // or remove the entire check
+const MAX_LOGIN_AGE_DAYS = 30; // or remove the entire check
 
 
 const daysToMs = (days: number) => days * 24 * 60 * 60 * 1000;
@@ -83,84 +83,92 @@ const isCheckingResume = useRef(false);
   
 
   // ✅ On resume: if session is missing/broken → sign out fast (no hanging)
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', async (state) => {
-      if (state !== 'active') return;
-  
-      if (isCheckingResume.current) return;
-      isCheckingResume.current = true;
-  
-      console.log('🔄 App resumed — checking auth state');
-  
-      try {
-        // ✅ 1) Enforce 30-day rule on resume
-        const last = await getLastLoginAt();
-        if (last && Date.now() - last > daysToMs(MAX_LOGIN_AGE_DAYS)) {
-          console.log('⏳ Login expired (30 days) — signing out');
-          await supabase.auth.signOut();
-          await clearLastLoginAt();
-  
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          setIsInitialized(true);
-          return;
-        }
-  
-        // ✅ 2) If session is missing/broken → sign out immediately
-        const { data, error } = await supabase.auth.getSession();
-  
-        if (error) {
-          console.log('⚠️ getSession error on resume:', error.message);
-        }
-  
-        if (!data?.session) {
-          console.log('⚠️ No session on resume — not signing out (will wait for auth listener)');
-          setUser(null);
-          setProfile(null);
-          setProfileLoaded(true); // ✅ add
-          setLoading(false);
-          setIsInitialized(true);
-          return;
-        }
-        
-        
-  
-        // ✅ Session exists
-        console.log('✅ Session exists on resume for:', data.session.user.email);
-        setUser(data.session.user);
-        await setLastLoginNow();
+  // ✅ On resume: if session is missing/broken → sign out fast (no hanging)
+useEffect(() => {
+  const sub = AppState.addEventListener('change', async (state) => {
+    if (state !== 'active') return;
 
-  
-        try {
-          const { profile } = await getProfile();
-          setProfile(profile);
-        } catch (err) {
-          console.log('⚠️ Resume profile refresh failed:', err);
-        }
-  
-        setLoading(false);
-        setIsInitialized(true);
-      } catch (e) {
-        console.log('⚠️ Auth check failed on resume — signing out:', e);
+    if (isCheckingResume.current) return;
+    isCheckingResume.current = true;
+
+    console.log('🔄 App resumed — checking auth state');
+
+    try {
+      // ✅ 1) Enforce 30-day rule on resume
+      const last = await getLastLoginAt();
+      if (last && Date.now() - last > daysToMs(MAX_LOGIN_AGE_DAYS)) {
+        console.log('⏳ Login expired (30 days) — signing out');
         await supabase.auth.signOut();
         await clearLastLoginAt();
-  
+
         setUser(null);
         setProfile(null);
+        setProfileLoaded(true);
         setLoading(false);
         setIsInitialized(true);
-      } finally {
-        isCheckingResume.current = false;
+        return;
       }
-    });
-  
-    return () => {
+
+      // ✅ 2) Check session
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.log('⚠️ getSession error on resume:', error.message);
+      }
+
+      if (!data?.session) {
+        console.log('⚠️ No session on resume — will wait for auth listener');
+      
+        // IMPORTANT:
+        // Do NOT clear user/profile here. Supabase can return null briefly on resume.
+        // If the user is truly signed out, onAuthStateChange('SIGNED_OUT') will handle it.
+      
+        setProfileLoaded(true);
+        setLoading(false);
+        setIsInitialized(true);
+        return;
+      }
+      
+
+      // ✅ Session exists
+      console.log('✅ Session exists on resume for:', data.session.user.email);
+      setUser(data.session.user);
+      await setLastLoginNow();
+
+      setProfileLoaded(false);
+
+      try {
+        const { profile } = await getProfile();
+        setProfile(profile);
+      } catch (err) {
+        console.log('⚠️ Resume profile refresh failed:', err);
+        setProfile(null);
+      } finally {
+        setProfileLoaded(true);
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    } catch (e) {
+      console.log('⚠️ Auth check failed on resume — signing out:', e);
+      await supabase.auth.signOut();
+      await clearLastLoginAt();
+
+      setUser(null);
+      setProfile(null);
+      setProfileLoaded(true);
+      setLoading(false);
+      setIsInitialized(true);
+    } finally {
       isCheckingResume.current = false;
-      sub.remove();
-    };
-  }, []);
-  
+    }
+  });
+
+  return () => {
+    isCheckingResume.current = false;
+    sub.remove();
+  };
+}, []);
+
 
   // ✅ Init auth once on app start (NOT dependent on profile)
   useEffect(() => {
@@ -202,9 +210,11 @@ const isCheckingResume = useRef(false);
     
           if (mounted) {
             setUser(null);
-            setProfile(null);
-            setLoading(false);
-            setIsInitialized(true);
+setProfile(null);
+setProfileLoaded(true);
+setLoading(false);
+setIsInitialized(true);
+
           }
           return;
         }
@@ -234,8 +244,10 @@ const isCheckingResume = useRef(false);
     
             setUser(null);
             setProfile(null);
+            setProfileLoaded(true);
             setLoading(false);
             setIsInitialized(true);
+            
           }
           return;
         }
@@ -287,17 +299,15 @@ try {
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
-    
-        // ✅ wipe broken persisted auth here too
+      
+        // Do NOT force signOut here.
+        // If it's a temporary error, signing out will log users out incorrectly.
+      
         if (mounted) {
-          await supabase.auth.signOut();
-          await clearLastLoginAt();
-    
-          setUser(null);
-          setProfile(null);
+          setProfileLoaded(true);
           setLoading(false);
           setIsInitialized(true);
-        }
+        }      
       }
     };
     

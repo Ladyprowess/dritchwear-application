@@ -4,52 +4,66 @@ import { useSegments, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBiometricEnabled, promptBiometric } from '@/lib/biometrics';
 
-export default function AppLockGate({ children }: { children: React.ReactNode }) {
+type GateState = 'boot' | 'locked' | 'unlocked';
+
+type Props = {
+  children: React.ReactNode;
+  onLockedChange?: (locked: boolean) => void; // ✅ used by RootLayoutContent to pause routing
+};
+
+export default function AppLockGate({ children, onLockedChange }: Props) {
   const { user, isInitialized } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
-  const [locked, setLocked] = useState(false);
+  const isAuthFlow = segments[0] === '(auth)';
+  const shouldGate = isInitialized && !!user?.id && !isAuthFlow;
+
+  const [gate, setGate] = useState<GateState>('boot');
   const [busy, setBusy] = useState(false);
 
-  const isAuthFlow = segments[0] === '(auth)';
-
   const appState = useRef<AppStateStatus>(AppState.currentState);
-
-  // ✅ prevents flicker loops
   const authInProgressRef = useRef(false);
   const lastAuthTimeRef = useRef(0);
 
+  // Tell parent when locked/unlocked (so it can pause routing)
+  useEffect(() => {
+    const lockedNow = shouldGate && gate !== 'unlocked';
+    onLockedChange?.(lockedNow);
+  }, [shouldGate, gate, onLockedChange]);
+
   const runLock = async () => {
+    // Signed out or in auth flow → allow app
+    if (!shouldGate) {
+      setGate('unlocked');
+      return;
+    }
+
+    // Don’t re-trigger while prompt is open
+    if (authInProgressRef.current || busy) return;
+
+    // ✅ Immediately cover UI (prevents profile flash behind prompt)
+    setGate('locked');
+    setBusy(true);
+
     try {
-      if (!isInitialized) return;
-
-      // Don’t lock login screens / signed out
-      if (!user?.id || isAuthFlow) {
-        setLocked(false);
-        return;
-      }
-
-      // ✅ don't re-trigger while prompt is open
-      if (authInProgressRef.current) return;
-
       const enabled = await getBiometricEnabled();
+
+      // If biometrics isn't enabled, allow app
       if (!enabled) {
-        setLocked(false);
+        setGate('unlocked');
         return;
       }
-
-      setLocked(true);
-      setBusy(true);
 
       authInProgressRef.current = true;
 
       const res = await promptBiometric('Unlock Dritchwear');
       lastAuthTimeRef.current = Date.now();
 
-      if (res.success) setLocked(false);
+      setGate(res.success ? 'unlocked' : 'locked');
     } catch (e) {
-      setLocked(false);
+      // Fail open if anything breaks
+      setGate('unlocked');
     } finally {
       authInProgressRef.current = false;
       setBusy(false);
@@ -58,20 +72,21 @@ export default function AppLockGate({ children }: { children: React.ReactNode })
 
   // Run when user becomes available / route group changes
   useEffect(() => {
+    // When gating becomes relevant, lock immediately (UI cover) then authenticate
+    if (shouldGate) setGate('locked');
     runLock();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitialized, user?.id, isAuthFlow]);
+  }, [shouldGate, user?.id]);
 
-  // Re-lock on background -> active (but avoid the auth prompt loop)
+  // Re-lock on background -> active (avoid loop right after auth prompt)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       const prev = appState.current;
       appState.current = next;
 
       if ((prev === 'background' || prev === 'inactive') && next === 'active') {
-        // ✅ if we JUST authenticated, ignore this active event
-        const justAuthed = Date.now() - lastAuthTimeRef.current < 1500;
-        if (authInProgressRef.current || justAuthed) return;
+        const justAuthed = Date.now() - lastAuthTimeRef.current < 4000;
+        if (busy || authInProgressRef.current || justAuthed) return;
 
         runLock();
       }
@@ -79,22 +94,24 @@ export default function AppLockGate({ children }: { children: React.ReactNode })
 
     return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitialized, user?.id, isAuthFlow]);
+  }, [shouldGate, user?.id, busy]);
 
   return (
     <View style={{ flex: 1 }}>
+      {/* ✅ Keep app mounted */}
       {children}
-  
-      {locked && (
-        <View style={styles.overlay}>
+
+      {/* ✅ Opaque lock overlay when needed */}
+      {shouldGate && gate !== 'unlocked' && (
+        <View style={styles.fullOverlay} pointerEvents="auto">
           <View style={styles.card}>
             <Text style={styles.title}>App Locked</Text>
             <Text style={styles.sub}>Use biometric authentication to continue.</Text>
-  
+
             <Pressable style={styles.btn} onPress={runLock} disabled={busy}>
               <Text style={styles.btnText}>{busy ? 'Checking…' : 'Unlock'}</Text>
             </Pressable>
-  
+
             <Pressable
               style={[styles.btn, styles.alt]}
               onPress={() => router.replace('/(auth)/login')}
@@ -110,26 +127,34 @@ export default function AppLockGate({ children }: { children: React.ReactNode })
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { fontSize: 20, fontWeight: '700' },
   sub: { marginTop: 6, fontSize: 14, opacity: 0.7, textAlign: 'center' },
-  btn: { width: '100%', height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 12, backgroundColor: '#111827' },
+  btn: {
+    width: '100%',
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    backgroundColor: '#111827',
+  },
   btnText: { color: '#fff', fontWeight: '600' },
   alt: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' },
   altText: { color: '#111827' },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
   card: {
     width: '100%',
     maxWidth: 420,
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
     padding: 20,
-  }
-  
+  },
+  fullOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 9999,
+    elevation: 9999,
+  },
 });
