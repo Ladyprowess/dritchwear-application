@@ -129,67 +129,54 @@ export default function CustomerLayout() {
       }
     });
 
-    const userChannel = supabase
-      .channel(`notifications-user-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const n = payload.new as any;
-          console.log('🔔 REALTIME (USER):', n);
+    const realtimeChannel = supabase
+  .channel(`notifications-all-${user.id}`)
+  .on(
+    'postgres_changes',
+    {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      // ✅ no filter here
+    },
+    async (payload) => {
+      const n = payload.new as any;
 
-          if (!cancelled) setShowBanner(true);
-          if (!cancelled) setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
+      // ✅ only react to:
+      // - notifications for this user
+      // - broadcast notifications (user_id null)
+      if (n.user_id && n.user_id !== user.id) return;
 
-          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-          bannerTimerRef.current = setTimeout(() => {
-            if (!cancelled) setShowBanner(false);
-          }, 6000);
+      console.log('🔔 REALTIME NOTIF:', n);
 
-          await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
-        }
-      )
-      .subscribe();
+      if (!cancelled) setShowBanner(true);
 
-    const broadcastChannel = supabase
-      .channel(`notifications-broadcast-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: 'user_id=is.null',
-        },
-        async (payload) => {
-          const n = payload.new as any;
-          console.log('🔔 REALTIME (BROADCAST):', n);
+      // ✅ if you treat null as unread, count it too
+      const isUnread = n.is_read === false || n.is_read == null;
+      if (!cancelled && isUnread) setUnreadCount((prev) => prev + 1);
 
-          if (!cancelled) setShowBanner(true);
-          if (!cancelled) setUnreadCount((prev) => prev + (n.is_read ? 0 : 1));
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = setTimeout(() => {
+        if (!cancelled) setShowBanner(false);
+      }, 6000);
 
-          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-          bannerTimerRef.current = setTimeout(() => {
-            if (!cancelled) setShowBanner(false);
-          }, 6000);
+      await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
+    }
+  )
+  .subscribe((status) => {
+    console.log('✅ realtime status:', status);
+  });
 
-          await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
-        }
-      )
-      .subscribe();
+
+  
 
     return () => {
       cancelled = true;
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
 
       sub.remove();
-      supabase.removeChannel(userChannel);
-      supabase.removeChannel(broadcastChannel);
+      supabase.removeChannel(realtimeChannel);
+
     };
   }, [user?.id, refreshUnreadCount]);
 
@@ -356,7 +343,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 50,
   },
   bannerText: {
     color: '#FFFFFF',
