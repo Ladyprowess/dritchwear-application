@@ -1,40 +1,42 @@
-import { useEffect, useRef, useState } from 'react';
+// 📁 app/_layout.tsx
+
+import React, { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
+import Constants from 'expo-constants';
+import 'react-native-url-polyfill/auto';
+
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import * as SplashScreen from 'expo-splash-screen';
-import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
-import * as SystemUI from 'expo-system-ui';
-import 'react-native-url-polyfill/auto';
 import AppLockGate from '@/components/AppLockGate';
+
 import {
   registerForPushNotificationsAsync,
   savePushTokenToDatabase,
   setupNotificationListeners,
   cleanupNotificationListeners,
 } from '@/lib/pushNotifications';
-import Constants from 'expo-constants';
 
-SplashScreen.preventAutoHideAsync();
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
-function AuthBootScreen({ showStartError }: { showStartError: boolean }) {
-  if (showStartError) {
-    return (
-      <View style={styles.bootWrap}>
-        <Text style={styles.bootTitle}>
-          Sorry the app encountered an error while trying to start, kindly close and reopen the app to clear error
-        </Text>
-      </View>
-    );
-  }
+// ✅ keep splash until we say so
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
+function AuthBootOverlay({ showStartError }: { showStartError: boolean }) {
   return (
-    <View style={styles.bootWrap}>
-      <ActivityIndicator size="small" />
+    <View style={styles.bootOverlay}>
+      {showStartError ? (
+        <Text style={styles.bootTitle}>
+          Sorry, the app encountered an error while trying to start. Please close and reopen the app.
+        </Text>
+      ) : (
+        <ActivityIndicator size="small" />
+      )}
     </View>
   );
 }
@@ -42,18 +44,20 @@ function AuthBootScreen({ showStartError }: { showStartError: boolean }) {
 function PushNotificationSetup() {
   const { user, isInitialized, loading } = useAuth();
   const router = useRouter();
+
   const listenersRef = useRef<any>(null);
   const hasSetupRef = useRef(false);
 
   useEffect(() => {
     if (!isInitialized || loading) return;
 
+    // signed out => cleanup
     if (!user?.id) {
       if (listenersRef.current) {
         cleanupNotificationListeners(listenersRef.current);
         listenersRef.current = null;
-        hasSetupRef.current = false;
       }
+      hasSetupRef.current = false;
       return;
     }
 
@@ -96,13 +100,9 @@ function PushNotificationSetup() {
             const type = String(data.type || '');
 
             try {
-              if (type === 'order') {
-                router.push('/(customer)/orders');
-              } else if (type === 'promo') {
-                router.push('/(customer)/shop');
-              } else {
-                router.push('/(customer)/notifications');
-              }
+              if (type === 'order') router.push('/(customer)/orders');
+              else if (type === 'promo') router.push('/(customer)/shop');
+              else router.push('/(customer)/notifications');
             } catch (e) {
               console.log('Could not navigate:', e);
             }
@@ -112,6 +112,7 @@ function PushNotificationSetup() {
         listenersRef.current = listeners;
       } catch (error) {
         console.error('Error setting up push notifications:', error);
+        hasSetupRef.current = false;
       }
     })();
 
@@ -122,7 +123,7 @@ function PushNotificationSetup() {
       }
       hasSetupRef.current = false;
     };
-  }, [user?.id, isInitialized, loading]);
+  }, [user?.id, isInitialized, loading, router]);
 
   return null;
 }
@@ -132,13 +133,25 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
   const router = useRouter();
 
   const didRouteRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
+
   const [showStartError, setShowStartError] = useState(false);
 
-  useEffect(() => {
-    const stillBooting = !isInitialized || loading || !profileLoaded;
-    const hasUser = !!user?.id;
+  // derive "booting" (no early return!)
+  const booting = !isInitialized || loading || !profileLoaded;
 
-    if (!stillBooting || hasUser) {
+  // ✅ reset routing guard when user changes
+  useEffect(() => {
+    const current = user?.id ?? null;
+    if (lastUserIdRef.current !== current) {
+      lastUserIdRef.current = current;
+      didRouteRef.current = false;
+    }
+  }, [user?.id]);
+
+  // ✅ boot stuck UI (no signOut here)
+  useEffect(() => {
+    if (!booting || user?.id) {
       setShowStartError(false);
       return;
     }
@@ -149,17 +162,13 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
     }, 8000);
 
     return () => clearTimeout(t);
-  }, [isInitialized, loading, profileLoaded, user?.id]);
+  }, [booting, isInitialized, loading, profileLoaded, user?.id]);
 
+  // ✅ routing effect (only when booting is false)
   useEffect(() => {
-    if (!isInitialized || loading || !profileLoaded) return;
+    if (booting) return;
 
-    // ✅ KEY FIX:
-    // If user is signed in, DO NOT route until the lock system tells us it's unlocked.
-    // lockBlocking:
-    // - null => lock state not known yet
-    // - true => locked / blocking
-    // - false => unlocked / allow routing
+    // if signed in, wait for lock to be confirmed unlocked
     if (user?.id && lockBlocking !== false) return;
 
     if (didRouteRef.current) return;
@@ -176,16 +185,13 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
     }
 
     router.replace('/(customer)');
-  }, [isInitialized, loading, profileLoaded, user?.id, isAdmin, router, lockBlocking]);
-
-  if (!isInitialized || loading || !profileLoaded) {
-    return <AuthBootScreen showStartError={showStartError} />;
-  }
+  }, [booting, user?.id, isAdmin, router, lockBlocking]);
 
   return (
     <View style={{ flex: 1 }}>
       <PushNotificationSetup />
 
+      {/* ✅ ALWAYS render Stack (no early return) */}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -197,6 +203,9 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
         <Stack.Screen name="(admin)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+
+      {/* ✅ Overlay boot screen instead of returning early */}
+      {booting ? <AuthBootOverlay showStartError={showStartError} /> : null}
 
       <StatusBar style="dark" translucent={false} backgroundColor="#F9FAFB" hidden={false} />
     </View>
@@ -213,24 +222,22 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
   });
 
-  // ✅ null means: we don't know yet (treat as blocking for signed-in users)
   const [lockBlocking, setLockBlocking] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      void SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
-      SystemUI.setBackgroundColorAsync('#F9FAFB');
+      void SystemUI.setBackgroundColorAsync('#F9FAFB').catch(() => {});
     }
   }, []);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
+  // ✅ early return is fine here (after hooks)
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -246,16 +253,21 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  bootWrap: {
-    flex: 1,
+  bootOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   bootTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
+    textAlign: 'center',
   },
 });

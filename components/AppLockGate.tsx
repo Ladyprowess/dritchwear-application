@@ -8,7 +8,7 @@ type GateState = 'boot' | 'locked' | 'unlocked';
 
 type Props = {
   children: React.ReactNode;
-  onLockedChange?: (locked: boolean) => void; // ✅ used by RootLayoutContent to pause routing
+  onLockedChange?: (locked: boolean) => void;
 };
 
 export default function AppLockGate({ children, onLockedChange }: Props) {
@@ -26,31 +26,47 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
   const authInProgressRef = useRef(false);
   const lastAuthTimeRef = useRef(0);
 
-  // Tell parent when locked/unlocked (so it can pause routing)
+  // Tell parent when locked/unlocked
   useEffect(() => {
     const lockedNow = shouldGate && gate !== 'unlocked';
     onLockedChange?.(lockedNow);
   }, [shouldGate, gate, onLockedChange]);
 
   const runLock = async () => {
+    // ✅ CRITICAL FIX: If no user, unlock immediately and exit early
+    if (!user?.id) {
+      console.log('🔓 AppLockGate: No user, unlocking immediately');
+      setGate('unlocked');
+      setBusy(false);
+      authInProgressRef.current = false;
+      return;
+    }
+
     // Signed out or in auth flow → allow app
     if (!shouldGate) {
+      console.log('🔓 AppLockGate: Not gating (auth flow or not initialized)');
       setGate('unlocked');
       return;
     }
 
-    // Don’t re-trigger while prompt is open
-    if (authInProgressRef.current || busy) return;
+    // Don't re-trigger while prompt is open
+    if (authInProgressRef.current || busy) {
+      console.log('🔓 AppLockGate: Already busy, skipping');
+      return;
+    }
 
-    // ✅ Immediately cover UI (prevents profile flash behind prompt)
+    // ✅ Immediately cover UI
+    console.log('🔒 AppLockGate: Checking biometric lock');
     setGate('locked');
     setBusy(true);
 
     try {
-      const enabled = await getBiometricEnabled();
+      // ✅ Pass user ID
+      const enabled = await getBiometricEnabled(user.id);
 
       // If biometrics isn't enabled, allow app
       if (!enabled) {
+        console.log('🔓 AppLockGate: Biometric not enabled, unlocking');
         setGate('unlocked');
         return;
       }
@@ -60,8 +76,10 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       const res = await promptBiometric('Unlock Dritchwear');
       lastAuthTimeRef.current = Date.now();
 
+      console.log(`🔓 AppLockGate: Biometric result: ${res.success ? 'success' : 'failed'}`);
       setGate(res.success ? 'unlocked' : 'locked');
     } catch (e) {
+      console.log('🔓 AppLockGate: Error, failing open:', e);
       // Fail open if anything breaks
       setGate('unlocked');
     } finally {
@@ -70,24 +88,50 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
     }
   };
 
-  // Run when user becomes available / route group changes
+  // ✅ CRITICAL FIX: Watch user.id changes directly
   useEffect(() => {
-    // When gating becomes relevant, lock immediately (UI cover) then authenticate
-    if (shouldGate) setGate('locked');
-    runLock();
+    // If user signs out, immediately unlock (highest priority)
+    if (!user?.id) {
+      console.log('🚪 AppLockGate: User signed out, unlocking immediately');
+      setGate('unlocked');
+      setBusy(false);
+      authInProgressRef.current = false;
+      // Also notify parent that we're no longer blocking
+      onLockedChange?.(false);
+      return;
+    }
+    
+    // If we should gate and gate is not unlocked, run lock check
+    if (shouldGate && gate !== 'unlocked') {
+      console.log('🔐 AppLockGate: Should gate, running lock check');
+      runLock();
+    } else if (!shouldGate) {
+      // Not gating (e.g., in auth flow), make sure we're unlocked
+      setGate('unlocked');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldGate, user?.id]);
 
-  // Re-lock on background -> active (avoid loop right after auth prompt)
+  // Re-lock on background -> active
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       const prev = appState.current;
       appState.current = next;
 
+      // ✅ Don't lock if user is signed out
+      if (!user?.id) {
+        console.log('🔓 AppLockGate: No user on resume, staying unlocked');
+        return;
+      }
+
       if ((prev === 'background' || prev === 'inactive') && next === 'active') {
         const justAuthed = Date.now() - lastAuthTimeRef.current < 4000;
-        if (busy || authInProgressRef.current || justAuthed) return;
+        if (busy || authInProgressRef.current || justAuthed) {
+          console.log('🔓 AppLockGate: Skipping lock on resume (recently authed or busy)');
+          return;
+        }
 
+        console.log('🔐 AppLockGate: App resumed, re-checking lock');
         runLock();
       }
     });
@@ -96,13 +140,14 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldGate, user?.id, busy]);
 
+  // ✅ Don't render overlay for signed-out users
+  const showOverlay = shouldGate && gate !== 'unlocked' && !!user?.id;
+
   return (
     <View style={{ flex: 1 }}>
-      {/* ✅ Keep app mounted */}
       {children}
 
-      {/* ✅ Opaque lock overlay when needed */}
-      {shouldGate && gate !== 'unlocked' && (
+      {showOverlay && (
         <View style={styles.fullOverlay} pointerEvents="auto">
           <View style={styles.card}>
             <Text style={styles.title}>App Locked</Text>

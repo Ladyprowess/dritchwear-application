@@ -48,21 +48,19 @@ function NotificationTabIcon({
 }
 
 export default function CustomerLayout() {
+  // ✅ FIXED: Call ALL hooks first, before any conditional returns
   const { user, profile, loading } = useAuth();
   const router = useRouter();
-
   const [unreadCount, setUnreadCount] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
   const bannerTimerRef = useRef<any>(null);
-
   const insets = useSafeAreaInsets();
+
+  // ✅ All hook-based calculations must happen here
   const bottomInset = Platform.OS === 'android' ? Math.max(insets.bottom, 12) : insets.bottom;
   const TAB_BAR_BASE_HEIGHT = 90;
 
-  if (loading) return null;
-  if (!user) return <Redirect href="/(auth)/welcome" />;
-  if (profile?.role === 'admin') return <Redirect href="/(admin)" />;
-
+  // ✅ All useCallback and useMemo hooks
   const refreshUnreadCount = useCallback(async () => {
     if (!user?.id) return;
 
@@ -80,6 +78,7 @@ export default function CustomerLayout() {
     setUnreadCount(count || 0);
   }, [user?.id]);
 
+  // ✅ All useEffect hooks must be called unconditionally
   useEffect(() => {
     if (!user?.id) return;
 
@@ -87,10 +86,8 @@ export default function CustomerLayout() {
     let cancelled = false;
 
     const checkNotifications = async () => {
-      // Badge (source of truth)
       await refreshUnreadCount();
 
-      // Banner logic (latest notification time)
       const { data: latest, error: latestErr } = await supabase
         .from('notifications')
         .select('created_at')
@@ -126,14 +123,12 @@ export default function CustomerLayout() {
 
     checkNotifications();
 
-    // ✅ Recalculate badge when app returns to foreground (reliable)
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         refreshUnreadCount();
       }
     });
 
-    // ✅ Real-time: INSERT only (badge increments)
     const userChannel = supabase
       .channel(`notifications-user-${user.id}`)
       .on(
@@ -198,6 +193,12 @@ export default function CustomerLayout() {
     };
   }, [user?.id, refreshUnreadCount]);
 
+  // ✅ NOW it's safe to do conditional returns (after ALL hooks are called)
+  if (loading) return null;
+  if (!user) return <Redirect href="/(auth)/welcome" />;
+  if (profile?.role === 'admin') return <Redirect href="/(admin)" />;
+
+  // ✅ Regular component render
   return (
     <View style={{ flex: 1 }}>
       <Tabs
@@ -262,7 +263,6 @@ export default function CustomerLayout() {
             ),
           }}
           listeners={{
-            // ✅ THIS is the key: every time user opens tab, we recalc from DB
             tabPress: async () => {
               await refreshUnreadCount();
             },
@@ -277,7 +277,6 @@ export default function CustomerLayout() {
           }}
         />
 
-        {/* Hidden screens */}
         <Tabs.Screen name="checkout" options={{ href: null }} />
         <Tabs.Screen name="fund-wallet" options={{ href: null }} />
         <Tabs.Screen name="custom-order" options={{ href: null }} />
@@ -325,7 +324,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
   },
-
   notifBadge: {
     position: 'absolute',
     top: -6,
@@ -343,7 +341,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Inter-Bold',
   },
-
   bottomBanner: {
     position: 'absolute',
     left: 16,
@@ -361,7 +358,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-
   bannerText: {
     color: '#FFFFFF',
     fontSize: 14,

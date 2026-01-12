@@ -26,10 +26,8 @@ import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import { isBiometricSupported, getBiometricEnabled, setBiometricEnabled, promptBiometric } from '@/lib/biometrics';
 
-
-
 export default function ProfileScreen() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -49,9 +47,10 @@ export default function ProfileScreen() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricSaving, setBiometricSaving] = useState(false);
 
-
   useEffect(() => {
     (async () => {
+      if (!user?.id) return;
+      
       try {
         const supported = await isBiometricSupported();
         const available = supported.hasHardware && supported.isEnrolled;
@@ -59,7 +58,8 @@ export default function ProfileScreen() {
         setBiometricAvailable(available);
 
         if (available) {
-          setBiometricOn(await getBiometricEnabled());
+          // ✅ Pass user ID
+          setBiometricOn(await getBiometricEnabled(user.id));
         } else {
           setBiometricOn(false);
         }
@@ -68,10 +68,10 @@ export default function ProfileScreen() {
         setBiometricOn(false);
       }
     })();
-  }, []);
+  }, [user?.id]);
 
   const toggleBiometric = async () => {
-    if (biometricSaving) return;
+    if (biometricSaving || !user?.id) return;
   
     if (!biometricAvailable) {
       Alert.alert('Biometrics not available', 'Please set up biometrics on your phone first.');
@@ -88,11 +88,12 @@ export default function ProfileScreen() {
         const res = await promptBiometric('Enable biometric lock');
         if (!res.success) return;
       }
-  
-      await setBiometricEnabled(next);
+
+      // ✅ Pass user ID
+      await setBiometricEnabled(user.id, next);
   
       // ✅ Read back from storage to confirm the real value
-      const confirmed = await getBiometricEnabled();
+      const confirmed = await getBiometricEnabled(user.id);
       setBiometricOn(confirmed);
   
       Alert.alert('Success', `Biometric lock turned ${confirmed ? 'on' : 'off'}.`);
@@ -102,7 +103,6 @@ export default function ProfileScreen() {
       setBiometricSaving(false);
     }
   };
-  
 
   // Show loading state if profile is not loaded yet
   if (!profile) {
@@ -178,7 +178,6 @@ export default function ProfileScreen() {
       ]
     );
   };
-  
 
   const handleWalletHistory = () => {
     router.push('/(customer)/wallet-history');
@@ -207,8 +206,6 @@ export default function ProfileScreen() {
         {
           text: 'Copy Email Address',
           onPress: () => {
-            // For React Native, you'll need to install @react-native-clipboard/clipboard
-            // For now, show the email in an alert
             Alert.alert(
               'Support Email',
               `Please email us at:\n\n${supportEmail}\n\nInclude your account email (${profile.email}) in the request.`,
@@ -251,7 +248,6 @@ Thank you.`;
       if (supported) {
         await Linking.openURL(mailtoUrl);
       } else {
-        // Fallback: Show email details to copy manually
         Alert.alert(
           'Email Client Not Available',
           `Please manually send an email to:\n\n${email}\n\nSubject: Account Deletion Request\n\nInclude your email (${profile.email}) in the message.`,
@@ -259,7 +255,6 @@ Thank you.`;
         );
       }
     } catch (error) {
-      // Final fallback
       Alert.alert(
         'Contact Support',
         `Please send an email to:\n\n${email}\n\nSubject: Account Deletion Request\n\nInclude your account email (${profile.email}) in your request.`,
@@ -267,320 +262,309 @@ Thank you.`;
       );
     }
   };
+
   const handleCurrencyChange = (currencyCode: string) => {
     setFormData(prev => ({ ...prev, preferred_currency: currencyCode }));
   };
 
-  // Get wallet balance in preferred currency
   const walletBalanceInPreferredCurrency = profile.preferred_currency === 'NGN' ? 
     profile.wallet_balance : 
     convertFromNGN(profile.wallet_balance, profile.preferred_currency);
 
-    const menuItems = [
-      { icon: History, title: 'Wallet History', subtitle: 'View all transactions', onPress: handleWalletHistory },
-      { icon: Lock, title: 'Change Password', subtitle: 'Update your password', onPress: () => setChangingPassword(true) },
-    
-      {
-        icon: Lock,
-        title: 'Biometric Lock',
-        subtitle: biometricAvailable ? (biometricOn ? 'On' : 'Off') : 'Not set up',
-        onPress: biometricAvailable
-          ? toggleBiometric
-          : () => Alert.alert('Biometrics not available', 'Set up biometrics on your phone first.'),
-      },
-    
-      { icon: Settings, title: 'Settings', subtitle: 'App preferences', onPress: handleSettings },
-      { icon: HelpCircle, title: 'Help & Support', subtitle: 'Get assistance', onPress: handleHelpSupport },
-    ];
-    
-    
+  const menuItems = [
+    { icon: History, title: 'Wallet History', subtitle: 'View all transactions', onPress: handleWalletHistory },
+    { icon: Lock, title: 'Change Password', subtitle: 'Update your password', onPress: () => setChangingPassword(true) },
+    {
+      icon: Lock,
+      title: 'Biometric Lock',
+      subtitle: biometricAvailable ? (biometricOn ? 'On' : 'Off') : 'Not set up',
+      onPress: biometricAvailable
+        ? toggleBiometric
+        : () => Alert.alert('Biometrics not available', 'Set up biometrics on your phone first.'),
+    },
+    { icon: Settings, title: 'Settings', subtitle: 'App preferences', onPress: handleSettings },
+    { icon: HelpCircle, title: 'Help & Support', subtitle: 'Get assistance', onPress: handleHelpSupport },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
-  <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-  >
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-        {!editing && !changingPassword ? (
-          <Pressable style={styles.editButton} onPress={() => setEditing(true)}>
-            <Edit3 size={16} color="#7C3AED" />
-            <Text style={styles.editButtonText}>Edit</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.editActions}>
-            <Pressable 
-              style={styles.cancelButton} 
-              onPress={() => {
-                if (changingPassword) {
-                  setChangingPassword(false);
-                  setPasswordData({ newPassword: '', confirmPassword: '' });
-                } else {
-                  handleCancel();
-                }
-              }}
-            >
-              <X size={16} color="#6B7280" />
-            </Pressable>
-            <Pressable 
-              style={styles.saveButton} 
-              onPress={changingPassword ? handlePasswordChange : handleSave}
-            >
-              <Save size={16} color="#FFFFFF" />
-            </Pressable>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Profile</Text>
+            {!editing && !changingPassword ? (
+              <Pressable style={styles.editButton} onPress={() => setEditing(true)}>
+                <Edit3 size={16} color="#7C3AED" />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.editActions}>
+                <Pressable 
+                  style={styles.cancelButton} 
+                  onPress={() => {
+                    if (changingPassword) {
+                      setChangingPassword(false);
+                      setPasswordData({ newPassword: '', confirmPassword: '' });
+                    } else {
+                      handleCancel();
+                    }
+                  }}
+                >
+                  <X size={16} color="#6B7280" />
+                </Pressable>
+                <Pressable 
+                  style={styles.saveButton} 
+                  onPress={changingPassword ? handlePasswordChange : handleSave}
+                >
+                  <Save size={16} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            )}
           </View>
-        )}
-      </View>
 
-      {/* Profile Card */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(profile.full_name || profile.email || 'U').charAt(0).toUpperCase()}
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {(profile.full_name || profile.email || 'U').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.profileInfo}>
+              <Text style={styles.userName}>
+                {profile.full_name || 'Add your name'}
+              </Text>
+              <Text style={styles.userEmail}>{profile.email}</Text>
+              
+              <View style={styles.walletContainer}>
+                <Wallet size={16} color="#7C3AED" />
+                <Text style={styles.walletBalance}>
+                  {formatCurrency(walletBalanceInPreferredCurrency, profile.preferred_currency || 'NGN')}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Profile Details or Password Change */}
+          <View style={styles.detailsContainer}>
+            <Text style={styles.sectionTitle}>
+              {changingPassword ? 'Change Password' : 'Personal Information'}
             </Text>
-          </View>
-        </View>
-
-        <View style={styles.profileInfo}>
-          <Text style={styles.userName}>
-            {profile.full_name || 'Add your name'}
-          </Text>
-          <Text style={styles.userEmail}>{profile.email}</Text>
-          
-          {/* Wallet Balance */}
-          <View style={styles.walletContainer}>
-            <Wallet size={16} color="#7C3AED" />
-            <Text style={styles.walletBalance}>
-              {formatCurrency(walletBalanceInPreferredCurrency, profile.preferred_currency || 'NGN')}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Profile Details or Password Change */}
-      <View style={styles.detailsContainer}>
-        <Text style={styles.sectionTitle}>
-          {changingPassword ? 'Change Password' : 'Personal Information'}
-        </Text>
-        
-        <View style={styles.detailsCard}>
-          {changingPassword ? (
-            <>
-              {/* New Password Field */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Lock size={20} color="#6B7280" />
-                  <Text style={styles.detailLabel}>New Password</Text>
-                </View>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    value={passwordData.newPassword}
-                    onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
-                    placeholder="Enter new password"
-                    placeholderTextColor="#9CA3AF"
-                    secureTextEntry={!showNewPassword}
-                  />
-                  <Pressable
-                    style={styles.eyeButton}
-                    onPress={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff size={16} color="#9CA3AF" />
-                    ) : (
-                      <Eye size={16} color="#9CA3AF" />
-                    )}
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Confirm Password Field */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Lock size={20} color="#6B7280" />
-                  <Text style={styles.detailLabel}>Confirm New Password</Text>
-                </View>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    value={passwordData.confirmPassword}
-                    onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
-                    placeholder="Confirm new password"
-                    placeholderTextColor="#9CA3AF"
-                    secureTextEntry={!showConfirmPassword}
-                  />
-                  <Pressable
-                    style={styles.eyeButton}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff size={16} color="#9CA3AF" />
-                    ) : (
-                      <Eye size={16} color="#9CA3AF" />
-                    )}
-                  </Pressable>
-                </View>
-              </View>
-            </>
-          ) : (
-            <>
-              {/* Full Name */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <User size={20} color="#6B7280" />
-                  <Text style={styles.detailLabel}>Full Name</Text>
-                </View>
-                {editing ? (
-                  <TextInput
-                    style={styles.detailInput}
-                    value={formData.full_name}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, full_name: text }))}
-                    placeholder="Enter your full name"
-                    placeholderTextColor="#9CA3AF"
-                  />
-                ) : (
-                  <Text style={styles.detailValue}>
-                    {profile.full_name || 'Not provided'}
-                  </Text>
-                )}
-              </View>
-
-              {/* Phone Number */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Phone size={20} color="#6B7280" />
-                  <Text style={styles.detailLabel}>Phone Number</Text>
-                </View>
-                {editing ? (
-                  <TextInput
-                    style={styles.detailInput}
-                    value={formData.phone}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="phone-pad"
-                  />
-                ) : (
-                  <Text style={styles.detailValue}>
-                    {profile.phone || 'Not provided'}
-                  </Text>
-                )}
-              </View>
-
-              {/* Location */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <MapPin size={20} color="#6B7280" />
-                  <Text style={styles.detailLabel}>Location</Text>
-                </View>
-                {editing ? (
-                  <TextInput
-                    style={styles.detailInput}
-                    value={formData.location}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, location: text }))}
-                    placeholder="Enter your location"
-                    placeholderTextColor="#9CA3AF"
-                  />
-                ) : (
-                  <Text style={styles.detailValue}>
-                    {profile.location || 'Not provided'}
-                  </Text>
-                )}
-              </View>
-
-              {/* Currency */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Globe size={20} color="#6B7280" />
-                  <Text style={styles.detailLabel}>Preferred Currency</Text>
-                </View>
-                {editing ? (
-                  <CurrencySelector
-                    selectedCurrency={formData.preferred_currency}
-                    onCurrencyChange={handleCurrencyChange}
-                    showLabel={false}
-                    style={styles.currencySelector}
-                  />
-                ) : (
-                  <Text style={styles.detailValue}>
-                    {profile.preferred_currency || 'NGN'}
-                  </Text>
-                )}
-              </View>
-            </>
-          )}
-        </View>
-      </View>
-
-      {/* Menu Items */}
-      {!editing && !changingPassword && (
-        <View style={styles.menuContainer}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <View style={styles.menuCard}>
-            {menuItems.map((item, index) => (
-              <Pressable 
-                key={index} 
-                style={[styles.menuItem, index === menuItems.length - 1 && styles.lastMenuItem]}
-                onPress={item.onPress}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={styles.menuIconContainer}>
-                    <item.icon size={20} color="#6B7280" />
+            
+            <View style={styles.detailsCard}>
+              {changingPassword ? (
+                <>
+                  <View style={styles.detailItem}>
+                    <View style={styles.detailHeader}>
+                      <Lock size={20} color="#6B7280" />
+                      <Text style={styles.detailLabel}>New Password</Text>
+                    </View>
+                    <View style={styles.passwordContainer}>
+                      <TextInput
+                        style={styles.passwordInput}
+                        value={passwordData.newPassword}
+                        onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
+                        placeholder="Enter new password"
+                        placeholderTextColor="#9CA3AF"
+                        secureTextEntry={!showNewPassword}
+                      />
+                      <Pressable
+                        style={styles.eyeButton}
+                        onPress={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff size={16} color="#9CA3AF" />
+                        ) : (
+                          <Eye size={16} color="#9CA3AF" />
+                        )}
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuItemTitle}>{item.title}</Text>
-                    <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+
+                  <View style={styles.detailItem}>
+                    <View style={styles.detailHeader}>
+                      <Lock size={20} color="#6B7280" />
+                      <Text style={styles.detailLabel}>Confirm New Password</Text>
+                    </View>
+                    <View style={styles.passwordContainer}>
+                      <TextInput
+                        style={styles.passwordInput}
+                        value={passwordData.confirmPassword}
+                        onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
+                        placeholder="Confirm new password"
+                        placeholderTextColor="#9CA3AF"
+                        secureTextEntry={!showConfirmPassword}
+                      />
+                      <Pressable
+                        style={styles.eyeButton}
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={16} color="#9CA3AF" />
+                        ) : (
+                          <Eye size={16} color="#9CA3AF" />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.detailItem}>
+                    <View style={styles.detailHeader}>
+                      <User size={20} color="#6B7280" />
+                      <Text style={styles.detailLabel}>Full Name</Text>
+                    </View>
+                    {editing ? (
+                      <TextInput
+                        style={styles.detailInput}
+                        value={formData.full_name}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, full_name: text }))}
+                        placeholder="Enter your full name"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                    ) : (
+                      <Text style={styles.detailValue}>
+                        {profile.full_name || 'Not provided'}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.detailItem}>
+                    <View style={styles.detailHeader}>
+                      <Phone size={20} color="#6B7280" />
+                      <Text style={styles.detailLabel}>Phone Number</Text>
+                    </View>
+                    {editing ? (
+                      <TextInput
+                        style={styles.detailInput}
+                        value={formData.phone}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
+                        placeholder="Enter your phone number"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="phone-pad"
+                      />
+                    ) : (
+                      <Text style={styles.detailValue}>
+                        {profile.phone || 'Not provided'}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.detailItem}>
+                    <View style={styles.detailHeader}>
+                      <MapPin size={20} color="#6B7280" />
+                      <Text style={styles.detailLabel}>Location</Text>
+                    </View>
+                    {editing ? (
+                      <TextInput
+                        style={styles.detailInput}
+                        value={formData.location}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, location: text }))}
+                        placeholder="Enter your location"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                    ) : (
+                      <Text style={styles.detailValue}>
+                        {profile.location || 'Not provided'}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.detailItem}>
+                    <View style={styles.detailHeader}>
+                      <Globe size={20} color="#6B7280" />
+                      <Text style={styles.detailLabel}>Preferred Currency</Text>
+                    </View>
+                    {editing ? (
+                      <CurrencySelector
+                        selectedCurrency={formData.preferred_currency}
+                        onCurrencyChange={handleCurrencyChange}
+                        showLabel={false}
+                        style={styles.currencySelector}
+                      />
+                    ) : (
+                      <Text style={styles.detailValue}>
+                        {profile.preferred_currency || 'NGN'}
+                      </Text>
+                    )}
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Menu Items */}
+          {!editing && !changingPassword && (
+            <View style={styles.menuContainer}>
+              <Text style={styles.sectionTitle}>Account</Text>
+              
+              <View style={styles.menuCard}>
+                {menuItems.map((item, index) => (
+                  <Pressable 
+                    key={index} 
+                    style={[styles.menuItem, index === menuItems.length - 1 && styles.lastMenuItem]}
+                    onPress={item.onPress}
+                  >
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIconContainer}>
+                        <item.icon size={20} color="#6B7280" />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Text style={styles.menuItemTitle}>{item.title}</Text>
+                        <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Sign Out Button */}
+          {!editing && !changingPassword && (
+            <View style={styles.signOutContainer}>
+              <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+                <LogOut size={20} color="#EF4444" />
+                <Text style={styles.signOutText}>Sign Out</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Delete Account Section */}
+          {!editing && !changingPassword && (
+            <View style={styles.deleteAccountContainer}>
+              <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
+              <Pressable style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+                <View style={styles.deleteAccountContent}>
+                  <View style={styles.deleteAccountLeft}>
+                    <View style={styles.deleteIconContainer}>
+                      <Trash2 size={20} color="#EF4444" />
+                    </View>
+                    <View>
+                      <Text style={styles.deleteAccountTitle}>Delete Account</Text>
+                      <Text style={styles.deleteAccountSubtitle}>Permanently delete your account</Text>
+                    </View>
                   </View>
                 </View>
               </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* Sign Out Button */}
-      {!editing && !changingPassword && (
-        <View style={styles.signOutContainer}>
-          <Pressable style={styles.signOutButton} onPress={handleSignOut}>
-            <LogOut size={20} color="#EF4444" />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </Pressable>
-        </View>
-      )}
-      {/* Delete Account Section */}
-{!editing && !changingPassword && (
-  <View style={styles.deleteAccountContainer}>
-    <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
-    <Pressable style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
-      <View style={styles.deleteAccountContent}>
-        <View style={styles.deleteAccountLeft}>
-          <View style={styles.deleteIconContainer}>
-            <Trash2 size={20} color="#EF4444" />
-          </View>
-          <View>
-            <Text style={styles.deleteAccountTitle}>Delete Account</Text>
-            <Text style={styles.deleteAccountSubtitle}>Permanently delete your account</Text>
-          </View>
-        </View>
-      </View>
-    </Pressable>
-  </View>
-)}
-    </ScrollView>
-  </KeyboardAvoidingView>
-</SafeAreaView>
-
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
