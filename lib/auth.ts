@@ -33,7 +33,7 @@ export async function signUp({ email, password, fullName, phone }: AuthCredentia
           phone: phone,
         },
         // Use dritchwear.com domain for email confirmation
-        emailRedirectTo: 'dritchwear://auth/callback',
+        emailRedirectTo: 'dritchwear://callback',
       },
     });
 
@@ -100,19 +100,40 @@ export async function signIn({ email, password }: AuthCredentials) {
 
 export async function signOut() {
   try {
-    console.log('👋 Signing out user');
+    console.log('👋 Sign out requested');
+
+
     const { error } = await supabase.auth.signOut();
+
+    // ✅ If Supabase says "session missing", treat it as already signed out
     if (error) {
+      const msg = String((error as any)?.message || '').toLowerCase();
+
+      if (msg.includes('auth session missing')) {
+        console.log('ℹ️ No active session — treating as signed out');
+        return { error: null };
+      }
+
       console.error('❌ Sign out error:', error);
       throw error;
     }
+
     console.log('✅ Sign out successful - session cleared');
     return { error: null };
   } catch (error) {
+    // ✅ Same protection here too (some builds throw instead of returning { error })
+    const msg = String((error as any)?.message || '').toLowerCase();
+
+    if (msg.includes('auth session missing')) {
+      console.log('ℹ️ No active session — treating as signed out');
+      return { error: null };
+    }
+
     console.error('💥 Sign out catch error:', error);
     return { error: error as AuthError };
   }
 }
+
 
 export async function resetPassword(email: string) {
   try {
@@ -171,7 +192,7 @@ export async function resendConfirmation(email: string) {
       email: email,
       options: {
         // Use dritchwear.com domain for resent confirmation emails
-        emailRedirectTo: 'dritchwear://auth/callback',
+        emailRedirectTo: 'dritchwear://callback',
       },
     });
     
