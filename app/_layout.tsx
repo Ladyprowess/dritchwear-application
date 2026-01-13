@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Platform, View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, InteractionManager } from 'react-native';
+
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
@@ -145,82 +146,91 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
   const splashHiddenRef = useRef(false);
 
   const [showStartError, setShowStartError] = useState(false);
+  const errorLockedRef = useRef(false);
 
   // derive "booting" (no early return!)
-  const booting = !isInitialized || loading || !profileLoaded;
+  const booting = !isInitialized || loading || (!!user?.id && !profileLoaded);
 
-  // ✅ reset routing guard when user changes
+  const lockErrorAndShow = () => {
+    if (errorLockedRef.current) return;
+    errorLockedRef.current = true;
+    setShowStartError(true);
+
+    // Hide splash to show error screen
+    if (!splashHiddenRef.current) {
+      splashHiddenRef.current = true;
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  };
+
+  const hideSplashSafely = () => {
+    if (splashHiddenRef.current) return;
+    splashHiddenRef.current = true;
+    void SplashScreen.hideAsync().catch(() => {});
+  };
+
+  // ✅ reset routing guard when user changes (also allows retry only on a "new app session/user")
   useEffect(() => {
     const current = user?.id ?? null;
     if (lastUserIdRef.current !== current) {
       lastUserIdRef.current = current;
       didRouteRef.current = false;
       splashHiddenRef.current = false;
+  
+      // ❌ do not reset error here
     }
   }, [user?.id]);
+  
 
-  // ✅ boot stuck UI - show error after 6 seconds
-  // ✅ boot stuck UI - show error after 6 seconds
-useEffect(() => {
-  if (!booting) {
-    setShowStartError(false);
-    return;
-  }
+  // ✅ boot timeout: if still booting after 6s -> lock error and stop everything
+  useEffect(() => {
+    if (errorLockedRef.current) return;
 
-  const t = setTimeout(() => {
-    // Still stuck loading after 6 seconds
-    if (!isInitialized || loading || !profileLoaded) {
-      setShowStartError(true);
-      // Hide splash to show error
-      if (!splashHiddenRef.current) {
-        splashHiddenRef.current = true;
-        void SplashScreen.hideAsync().catch(() => {});
+    if (!booting) return;
+
+    const t = setTimeout(() => {
+      // still stuck => show error and lock it
+      if (!isInitialized || loading || !profileLoaded) {
+        lockErrorAndShow();
       }
-    }
-  }, 6000);
+    }, 6000);
 
-  return () => clearTimeout(t);
-}, [booting, isInitialized, loading, profileLoaded]);
+    return () => clearTimeout(t);
+  }, [booting, isInitialized, loading, profileLoaded]);
 
-// ✅ routing effect (only when booting is false)
-useEffect(() => {
-  if (booting) return;
-
-  // if signed in, wait for lock to be confirmed unlocked
-  if (user?.id && lockBlocking !== false) return;
-
-  if (didRouteRef.current) return;
-  didRouteRef.current = true;
-
-  const routeAndHideSplash = async () => {
+  // ✅ routing effect: only route when booting is done AND no error locked
+  useEffect(() => {
+    if (booting) return;
+    if (errorLockedRef.current) return;
+  
+    // if signed in, wait for lock to be confirmed unlocked
+    if (user?.id && lockBlocking !== false) return;
+  
+    if (didRouteRef.current) return;
+    didRouteRef.current = true;
+  
     try {
       if (!user?.id) {
-        await router.replace('/(auth)');
+        router.replace('/(auth)/welcome'); // ✅ real route
       } else if (isAdmin) {
-        await router.replace('/(admin)');
+        router.replace('/(admin)'); // ✅ real route
       } else {
-        await router.replace('/(customer)');
+        router.replace('/(customer)'); // ✅ real route
       }
-
-      // Hide splash after successful navigation
-      setTimeout(() => {
-        if (!splashHiddenRef.current) {
-          splashHiddenRef.current = true;
-          void SplashScreen.hideAsync().catch(() => {});
-        }
-      }, 100);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setShowStartError(true);
-      if (!splashHiddenRef.current) {
-        splashHiddenRef.current = true;
-        void SplashScreen.hideAsync().catch(() => {});
-      }
+  
+      InteractionManager.runAfterInteractions(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            hideSplashSafely();
+          });
+        });
+      });
+    } catch (e) {
+      console.error('Navigation error:', e);
+      lockErrorAndShow();
     }
-  };
-
-  routeAndHideSplash();
-}, [booting, user?.id, isAdmin, router, lockBlocking]);
+  }, [booting, user?.id, isAdmin, router, lockBlocking]);
+  
 
   return (
     <View style={{ flex: 1 }}>
@@ -239,8 +249,12 @@ useEffect(() => {
         <Stack.Screen name="+not-found" />
       </Stack>
 
-      {/* ✅ Overlay boot screen or error screen */}
-      {(booting || showStartError) ? <AuthBootOverlay showStartError={showStartError} /> : null}
+      {/* ✅ Overlay boot screen or error screen - blocks all interaction during error */}
+      {(booting || showStartError) ? (
+        <View style={{ ...StyleSheet.absoluteFillObject, pointerEvents: showStartError ? 'auto' : 'none' }}>
+          <AuthBootOverlay showStartError={showStartError} />
+        </View>
+      ) : null}
 
       <StatusBar style="dark" translucent={false} backgroundColor="#F9FAFB" hidden={false} />
     </View>
