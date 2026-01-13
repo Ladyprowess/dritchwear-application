@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSegments, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { getBiometricEnabled, promptBiometric } from '@/lib/biometrics';
 
 type GateState = 'boot' | 'locked' | 'unlocked';
@@ -10,6 +11,41 @@ type Props = {
   children: React.ReactNode;
   onLockedChange?: (locked: boolean) => void;
 };
+
+function getBiometricFailMessage(res: any) {
+  // Expo LocalAuthentication commonly returns { success, error, warning }
+  const err = (res?.error || '').toString();
+
+  // Messages with NO "try again" — only clear next step
+  const restartMsg = 'Please close the app and open it again. If it continues, go to Login.';
+
+  if (!err) {
+    return `Authentication failed. ${restartMsg}`;
+  }
+
+  // Common cases
+  if (err.includes('user_cancel') || err.includes('user_cancelled')) {
+    return `Authentication was cancelled. ${restartMsg}`;
+  }
+
+  if (err.includes('system_cancel')) {
+    return `Authentication was interrupted by your phone. ${restartMsg}`;
+  }
+
+  if (err.includes('lockout')) {
+    return `Authentication is temporarily blocked by your phone security settings. ${restartMsg}`;
+  }
+
+  if (err.includes('not_enrolled')) {
+    return `Biometrics is not set up on this phone. ${restartMsg}`;
+  }
+
+  if (err.includes('not_available') || err.includes('not_supported')) {
+    return `Biometric authentication is not available on this device. ${restartMsg}`;
+  }
+
+  return `We could not verify your identity. ${restartMsg}`;
+}
 
 export default function AppLockGate({ children, onLockedChange }: Props) {
   const { user, isInitialized } = useAuth();
@@ -21,6 +57,7 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
 
   const [gate, setGate] = useState<GateState>('boot');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const authInProgressRef = useRef(false);
@@ -33,9 +70,10 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
   }, [shouldGate, gate, onLockedChange]);
 
   const runLock = async () => {
-    // ✅ CRITICAL FIX: If no user, unlock immediately and exit early
+    // If no user, unlock immediately and exit early
     if (!user?.id) {
       console.log('🔓 AppLockGate: No user, unlocking immediately');
+      setError(null);
       setGate('unlocked');
       setBusy(false);
       authInProgressRef.current = false;
@@ -45,6 +83,7 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
     // Signed out or in auth flow → allow app
     if (!shouldGate) {
       console.log('🔓 AppLockGate: Not gating (auth flow or not initialized)');
+      setError(null);
       setGate('unlocked');
       return;
     }
@@ -55,18 +94,19 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       return;
     }
 
-    // ✅ Immediately cover UI
+    // Immediately cover UI
     console.log('🔒 AppLockGate: Checking biometric lock');
     setGate('locked');
     setBusy(true);
+    setError(null);
 
     try {
-      // ✅ Pass user ID
       const enabled = await getBiometricEnabled(user.id);
 
       // If biometrics isn't enabled, allow app
       if (!enabled) {
         console.log('🔓 AppLockGate: Biometric not enabled, unlocking');
+        setError(null);
         setGate('unlocked');
         return;
       }
@@ -77,36 +117,43 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       lastAuthTimeRef.current = Date.now();
 
       console.log(`🔓 AppLockGate: Biometric result: ${res.success ? 'success' : 'failed'}`);
-      setGate(res.success ? 'unlocked' : 'locked');
+
+      if (res.success) {
+        setError(null);
+        setGate('unlocked');
+      } else {
+        setGate('locked');
+        setError(getBiometricFailMessage(res));
+      }
     } catch (e) {
-      console.log('🔓 AppLockGate: Error, failing open:', e);
-      // Fail open if anything breaks
-      setGate('unlocked');
+      console.log('🔒 AppLockGate: Unlock error:', e);
+      setGate('locked');
+      setError('We could not verify your identity. Please close the app and open it again. If it continues, go to Login.');
     } finally {
       authInProgressRef.current = false;
       setBusy(false);
     }
   };
 
-  // ✅ CRITICAL FIX: Watch user.id changes directly
+  // Watch user.id changes directly
   useEffect(() => {
     // If user signs out, immediately unlock (highest priority)
     if (!user?.id) {
       console.log('🚪 AppLockGate: User signed out, unlocking immediately');
       setGate('unlocked');
       setBusy(false);
+      setError(null);
       authInProgressRef.current = false;
-      // Also notify parent that we're no longer blocking
       onLockedChange?.(false);
       return;
     }
-    
+
     // If we should gate and gate is not unlocked, run lock check
     if (shouldGate && gate !== 'unlocked') {
       console.log('🔐 AppLockGate: Should gate, running lock check');
       runLock();
     } else if (!shouldGate) {
-      // Not gating (e.g., in auth flow), make sure we're unlocked
+      setError(null);
       setGate('unlocked');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,7 +165,7 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       const prev = appState.current;
       appState.current = next;
 
-      // ✅ Don't lock if user is signed out
+      // Don't lock if user is signed out
       if (!user?.id) {
         console.log('🔓 AppLockGate: No user on resume, staying unlocked');
         return;
@@ -140,7 +187,7 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldGate, user?.id, busy]);
 
-  // ✅ Don't render overlay for signed-out users
+  // Don't render overlay for signed-out users
   const showOverlay = shouldGate && gate !== 'unlocked' && !!user?.id;
 
   return (
@@ -153,14 +200,31 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
             <Text style={styles.title}>App Locked</Text>
             <Text style={styles.sub}>Use biometric authentication to continue.</Text>
 
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
             <Pressable style={styles.btn} onPress={runLock} disabled={busy}>
               <Text style={styles.btnText}>{busy ? 'Checking…' : 'Unlock'}</Text>
             </Pressable>
 
             <Pressable
               style={[styles.btn, styles.alt]}
-              onPress={() => router.replace('/(auth)/login')}
               disabled={busy}
+              onPress={async () => {
+                try {
+                  setError(null);
+                  setBusy(true);
+
+                  // Clean sign out so login doesn’t throw errors
+                  await supabase.auth.signOut();
+
+                  router.replace('/(auth)/login');
+                } catch (e) {
+                  console.log('🔒 AppLockGate: signOut error:', e);
+                  setError('Please close the app and open it again, then go to Login.');
+                } finally {
+                  setBusy(false);
+                }
+              }}
             >
               <Text style={[styles.btnText, styles.altText]}>Go to Login</Text>
             </Pressable>
@@ -174,6 +238,14 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
 const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700' },
   sub: { marginTop: 6, fontSize: 14, opacity: 0.7, textAlign: 'center' },
+
+  errorText: {
+    marginTop: 10,
+    color: '#DC2626',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+
   btn: {
     width: '100%',
     height: 50,
@@ -186,6 +258,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '600' },
   alt: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' },
   altText: { color: '#111827' },
+
   card: {
     width: '100%',
     maxWidth: 420,
@@ -193,6 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
   },
+
   fullOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#F9FAFB',

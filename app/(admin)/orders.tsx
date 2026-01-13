@@ -498,14 +498,16 @@ filterOrders(allItems, selectedStatus, searchQuery);
 
       {/* Order Details Modal */}
       <OrderDetailsModal
-        order={selectedOrder}
-        visible={showOrderModal}
-        onClose={() => {
-          setShowOrderModal(false);
-          setSelectedOrder(null);
-        }}
-        onOrderUpdate={fetchOrders}
-      />
+  order={selectedOrder}
+  visible={showOrderModal}
+  mode="manage" // 👈 explicit
+  onClose={() => {
+    setShowOrderModal(false);
+    setSelectedOrder(null);
+  }}
+  onOrderUpdate={fetchOrders}
+/>
+
     </SafeAreaView>
   );
 }

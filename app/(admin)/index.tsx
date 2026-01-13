@@ -74,45 +74,51 @@ const fetchDashboardData = async () => {
 
     // Fetch recent orders with user info (limit to 2)
     const { data: recentOrdersData } = await supabase
-      .from('orders')
-      .select(`
-        id,
-        user_id,
-        items,
-        subtotal,
-        service_fee,
-        delivery_fee,
-        tax,
-        total,
-        payment_method,
-        payment_status,
-        order_status,
-        delivery_address,
-        created_at,
-        currency,
-        original_amount,
-        profiles!inner(full_name, email, wallet_balance, preferred_currency)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(2);
+  .from('orders')
+  .select(`
+    id,
+    user_id,
+    items,
+    subtotal,
+    service_fee,
+    delivery_fee,
+    tax,
+    total,
+    payment_method,
+    payment_status,
+    order_status,
+    delivery_address,
+    created_at,
+    currency,
+    original_amount,
+    promo_code,
+    discount_amount,
+    profiles!inner(full_name, email, wallet_balance, preferred_currency)
+  `)
+  .order('created_at', { ascending: false })
+  .limit(2);
+
 
     // Fetch recent custom requests (limit to 1)
     const { data: recentCustomData } = await supabase
-      .from('custom_requests')
-      .select(`
-        id,
-        user_id,
-        title,
-        description,
-        quantity,
-        budget_range,
-        status,
-        created_at,
-        currency,
-        profiles!inner(full_name, email, wallet_balance, preferred_currency)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    .from('custom_requests')
+    .select(`
+      id,
+      user_id,
+      title,
+      description,
+      quantity,
+      budget_range,
+      status,
+      created_at,
+      currency,
+      invoice_sent,
+      profiles!inner(full_name, email, wallet_balance, preferred_currency),
+      invoices(*)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  
 
     if (orders) {
       // Calculate regular order revenue
@@ -401,14 +407,16 @@ const fetchDashboardData = async () => {
 
       {/* Order Details Modal */}
       <OrderDetailsModal
-        order={selectedOrder}
-        visible={showOrderModal}
-        onClose={() => {
-          setShowOrderModal(false);
-          setSelectedOrder(null);
-        }}
-        onOrderUpdate={fetchDashboardData}
-      />
+  order={selectedOrder}
+  visible={showOrderModal}
+  mode="view" // 👈 IMPORTANT
+  onClose={() => {
+    setShowOrderModal(false);
+    setSelectedOrder(null);
+  }}
+  onOrderUpdate={fetchDashboardData}
+/>
+
     </SafeAreaView>
   );
 }

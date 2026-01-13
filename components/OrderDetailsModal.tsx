@@ -79,17 +79,33 @@ interface OrderDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   onOrderUpdate: () => void;
+  mode?: 'view' | 'manage';
 }
+
 
 const statusOptions = [
   'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'
 ];
 
 const customStatusOptions = [
-  'pending', 'under_review', 'quoted', 'accepted', 'rejected', 'payment_made', 'completed', 'cancelled'
+  'pending',
+  'under_review',
+  'quoted',
+  'accepted',
+  'rejected',
+  'completed',
+  'cancelled'
 ];
 
-export default function OrderDetailsModal({ order, visible, onClose, onOrderUpdate }: OrderDetailsModalProps) {
+
+export default function OrderDetailsModal({
+  order,
+  visible,
+  onClose,
+  onOrderUpdate,
+  mode = 'manage', // 👈 default
+}: OrderDetailsModalProps) {
+
   const { isAdmin, profile, user } = useAuth();
   const [updating, setUpdating] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -128,8 +144,19 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
 
   if (!order) return null;
 
-  const isCustomOrder = !order.items;
-  const currentStatus = isCustomOrder ? order.status : order.order_status;
+const isCustomOrder = !order.items;
+
+// ✅ ADD / RESTORE THIS (this is what your app is missing)
+const currentStatus = (isCustomOrder ? order.status : order.order_status) || '';
+
+  const invoicePaid =
+  isCustomOrder &&
+  order.invoices?.some(i => i.status === 'paid');
+
+const derivedStatus = invoicePaid
+  ? 'payment_made'
+  : order.status;
+
   
   // Check if customer can write reviews (non-admin users with delivered orders)
   const canWriteReviews = !isAdmin && !isCustomOrder && order.order_status === 'delivered';
@@ -511,8 +538,10 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
             </View>
 
             {/* Status Management (Admin Only) */}
-            {isAdmin && !['completed', 'cancelled', 'delivered', 'rejected'].includes(currentStatus || '') && (
-              <View style={styles.section}>
+            {mode === 'manage' &&
+ isAdmin &&
+ !['completed', 'cancelled', 'delivered', 'rejected'].includes(currentStatus || '') && (
+  <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Status Management</Text>
                 <View style={styles.statusCard}>
                   <Text style={styles.updateStatusLabel}>Update Status</Text>
@@ -672,7 +701,7 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
                 )}
 
                 {/* Send Invoice Button - Only show if invoice can be sent */}
-                {canSendInvoice() && (
+                {mode === 'manage' && canSendInvoice() && (
                   <Pressable
                     style={styles.sendInvoiceButton}
                     onPress={() => setShowInvoiceModal(true)}
@@ -756,7 +785,7 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
                       <Text style={styles.summaryValue}>{formatAmountInPaymentCurrency(order.delivery_fee || 0)}</Text>
                     </View>
                     <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Tax</Text>
+                      <Text style={styles.summaryLabel}>VAT</Text>
                       <Text style={styles.summaryValue}>{formatAmountInPaymentCurrency(order.tax || 0)}</Text>
                     </View>
                     <View style={[styles.summaryRow, styles.summaryTotal]}>
@@ -825,7 +854,7 @@ export default function OrderDetailsModal({ order, visible, onClose, onOrderUpda
       </Modal>
 
       {/* Invoice Modal - Only for admins */}
-      {isAdmin && isCustomOrder && (
+      {mode === 'manage' && isAdmin && isCustomOrder && (
         <Modal
           visible={showInvoiceModal}
           animationType="slide"

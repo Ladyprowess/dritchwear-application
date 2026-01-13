@@ -140,7 +140,10 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-          <Text style={styles.label}>Phone Number *</Text>
+          <Text style={styles.label}>
+  Phone Number * <Text style={styles.hint}>(include country code, e.g. +234)</Text>
+</Text>
+
           <TextInput
   style={styles.input}
   value={formData.phone}
@@ -335,6 +338,12 @@ const styles = StyleSheet.create({
   registerButtonDisabled: {
     opacity: 0.6,
   },
+  hint: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  
   registerButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
