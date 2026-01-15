@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { signIn } from '@/lib/auth';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
+
 
 
 export default function LoginScreen() {
@@ -13,6 +15,17 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const params = useLocalSearchParams();
+  
+  const confirmedParam = Array.isArray(params.confirmed)
+  ? params.confirmed[0]
+  : params.confirmed;
+
+const [showConfirmedModal, setShowConfirmedModal] = useState(
+  confirmedParam === 'true'
+);
+
+
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -28,8 +41,7 @@ export default function LoginScreen() {
     const { error, needsConfirmation, email: userEmail } =
       await signIn({ email, password });
     
-    setLoading(false);
-    
+
 
     
 
@@ -64,7 +76,29 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="dark" />
+      {showConfirmedModal && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalBox}>
+      <Text style={styles.modalTitle}>Account Created</Text>
+      <Text style={styles.modalText}>
+        Your account has been successfully registered. You can now log in.
+      </Text>
+
+      <Pressable
+  style={styles.modalButton}
+  onPress={() => {
+    setShowConfirmedModal(false);
+    router.replace('/(auth)/login'); // clears confirmed=true
+  }}
+>
+  <Text style={styles.modalButtonText}>Back to Login</Text>
+</Pressable>
+    </View>
+  </View>
+)}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      
+
         <View style={styles.header}>
           <Pressable
             style={styles.backButton}
@@ -256,6 +290,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    elevation: 100, // ✅ add this
+  },
+  
+  modalBox: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 16,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#7C3AED',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontFamily: 'Inter-SemiBold',
+  },
+  
   loginButtonDisabled: {
     opacity: 0.6,
   },

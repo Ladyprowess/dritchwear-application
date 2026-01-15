@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "892966598296",
+    "project_id": "dritchwear-38e7c",
+    "storage_bucket": "dritchwear-38e7c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892966598296:android:11a79a1b795320157682ed",
+        "android_client_info": {
+          "package_name": "com.dritchwear.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBd8Pk3OKbJSxz1YcVlkoDhk-st7AxnOIg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

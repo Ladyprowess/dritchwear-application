@@ -27,7 +27,10 @@ export default function AuthCallbackScreen() {
           return;
         }
 
-        router.replace('/');
+        router.replace({
+  pathname: '/(auth)/login',
+  params: { confirmed: 'true' },
+});
         return;
       }
 
@@ -47,13 +50,19 @@ export default function AuthCallbackScreen() {
           return;
         }
 
-        router.replace('/');
+        router.replace({
+  pathname: '/(auth)/login',
+  params: { confirmed: 'true' },
+});
         return;
       }
 
       // 3) Fallback: maybe session already exists
       const { data } = await supabase.auth.getSession();
-      if (data.session) router.replace('/');
+      if (data.session) router.replace({
+  pathname: '/(auth)/login',
+  params: { confirmed: 'true' },
+});
       else router.replace('/(auth)/login');
     };
 
