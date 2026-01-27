@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, InteractionManager } from 'react-native';
+import { Platform, View, Text, StyleSheet, ActivityIndicator, InteractionManager } from 'react-native';
 
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -27,6 +27,9 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 
 // ✅ keep splash until we say so
 void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// ✅ minimum time to show loader before error (so error doesn’t “pop” instantly)
+const MIN_ERROR_LOADING_MS = 700;
 
 function AuthBootOverlay({ showStartError }: { showStartError: boolean }) {
   return (
@@ -148,20 +151,13 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
   const [showStartError, setShowStartError] = useState(false);
   const errorLockedRef = useRef(false);
 
+  // ✅ NEW: forces a short loading screen before showing error
+  const [forceLoadingBeforeError, setForceLoadingBeforeError] = useState(false);
+  const bootStartRef = useRef<number>(Date.now());
+  const errorDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // derive "booting" (no early return!)
   const booting = !isInitialized || loading || (!!user?.id && !profileLoaded);
-
-  const lockErrorAndShow = () => {
-    if (errorLockedRef.current) return;
-    errorLockedRef.current = true;
-    setShowStartError(true);
-
-    // Hide splash to show error screen
-    if (!splashHiddenRef.current) {
-      splashHiddenRef.current = true;
-      void SplashScreen.hideAsync().catch(() => {});
-    }
-  };
 
   const hideSplashSafely = () => {
     if (splashHiddenRef.current) return;
@@ -169,27 +165,62 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
     void SplashScreen.hideAsync().catch(() => {});
   };
 
-  // ✅ reset routing guard when user changes (also allows retry only on a "new app session/user")
+  const lockErrorAndShow = () => {
+    if (errorLockedRef.current) return;
+    errorLockedRef.current = true;
+
+    // Hide splash so we can show loader/error overlay
+    hideSplashSafely();
+
+    // ✅ Always show a short loader first (so error doesn’t pop instantly)
+    setForceLoadingBeforeError(true);
+    setShowStartError(false);
+
+    const elapsed = Date.now() - bootStartRef.current;
+    const remaining = Math.max(0, MIN_ERROR_LOADING_MS - elapsed);
+
+    if (errorDelayTimerRef.current) {
+      clearTimeout(errorDelayTimerRef.current);
+      errorDelayTimerRef.current = null;
+    }
+
+    errorDelayTimerRef.current = setTimeout(() => {
+      setForceLoadingBeforeError(false);
+      setShowStartError(true);
+    }, remaining);
+  };
+
+  // ✅ reset routing guard when user changes
   useEffect(() => {
     const current = user?.id ?? null;
     if (lastUserIdRef.current !== current) {
       lastUserIdRef.current = current;
       didRouteRef.current = false;
       splashHiddenRef.current = false;
-  
-      // ❌ do not reset error here
+
+      // ✅ reset timer baseline for “loading before error”
+      bootStartRef.current = Date.now();
+
+      // ❌ do not reset error here (your original behaviour)
     }
   }, [user?.id]);
-  
+
+  // ✅ cleanup timer
+  useEffect(() => {
+    return () => {
+      if (errorDelayTimerRef.current) {
+        clearTimeout(errorDelayTimerRef.current);
+        errorDelayTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // ✅ boot timeout: if still booting after 6s -> lock error and stop everything
   useEffect(() => {
     if (errorLockedRef.current) return;
-
     if (!booting) return;
 
     const t = setTimeout(() => {
-      // still stuck => show error and lock it
       if (!isInitialized || loading || !profileLoaded) {
         lockErrorAndShow();
       }
@@ -202,22 +233,22 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
   useEffect(() => {
     if (booting) return;
     if (errorLockedRef.current) return;
-  
+
     // if signed in, wait for lock to be confirmed unlocked
     if (user?.id && lockBlocking !== false) return;
-  
+
     if (didRouteRef.current) return;
     didRouteRef.current = true;
-  
+
     try {
       if (!user?.id) {
-        router.replace('/(auth)/welcome'); // ✅ real route
+        router.replace('/(auth)/welcome');
       } else if (isAdmin) {
-        router.replace('/(admin)'); // ✅ real route
+        router.replace('/(admin)');
       } else {
-        router.replace('/(customer)'); // ✅ real route
+        router.replace('/(customer)');
       }
-  
+
       InteractionManager.runAfterInteractions(() => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -230,13 +261,13 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
       lockErrorAndShow();
     }
   }, [booting, user?.id, isAdmin, router, lockBlocking]);
-  
+
+  const showOverlay = booting || forceLoadingBeforeError || showStartError;
 
   return (
     <View style={{ flex: 1 }}>
       <PushNotificationSetup />
 
-      {/* ✅ ALWAYS render Stack (no early return) */}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -249,8 +280,8 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
         <Stack.Screen name="+not-found" />
       </Stack>
 
-      {/* ✅ Overlay boot screen or error screen - blocks all interaction during error */}
-      {(booting || showStartError) ? (
+      {/* ✅ Overlay boot screen / forced loading / error */}
+      {showOverlay ? (
         <View style={{ ...StyleSheet.absoluteFillObject, pointerEvents: showStartError ? 'auto' : 'none' }}>
           <AuthBootOverlay showStartError={showStartError} />
         </View>
@@ -279,7 +310,6 @@ export default function RootLayout() {
     }
   }, []);
 
-  // ✅ early return is fine here (after hooks)
   if (!fontsLoaded && !fontError) return null;
 
   return (

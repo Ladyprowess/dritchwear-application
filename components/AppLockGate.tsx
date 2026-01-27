@@ -1,3 +1,5 @@
+// 📁 components/AppLockGate.tsx
+
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSegments, useRouter } from 'expo-router';
@@ -13,33 +15,23 @@ type Props = {
 };
 
 function getBiometricFailMessage(res: any) {
-  // Expo LocalAuthentication commonly returns { success, error, warning }
   const err = (res?.error || '').toString();
-
-  // Messages with NO "try again" — only clear next step
   const restartMsg = 'Please close the app and open it again. If it continues, go to Login.';
 
-  if (!err) {
-    return `Authentication failed. ${restartMsg}`;
-  }
+  if (!err) return `Authentication failed. ${restartMsg}`;
 
-  // Common cases
   if (err.includes('user_cancel') || err.includes('user_cancelled')) {
     return `Authentication was cancelled. ${restartMsg}`;
   }
-
   if (err.includes('system_cancel')) {
     return `Authentication was interrupted by your phone. ${restartMsg}`;
   }
-
   if (err.includes('lockout')) {
     return `Authentication is temporarily blocked by your phone security settings. ${restartMsg}`;
   }
-
   if (err.includes('not_enrolled')) {
     return `Biometrics is not set up on this phone. ${restartMsg}`;
   }
-
   if (err.includes('not_available') || err.includes('not_supported')) {
     return `Biometric authentication is not available on this device. ${restartMsg}`;
   }
@@ -63,9 +55,18 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
   const authInProgressRef = useRef(false);
   const lastAuthTimeRef = useRef(0);
 
-  // Tell parent when locked/unlocked
+  // ✅ Delay resume prompt (Android needs this)
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ✅ Prevent infinite loop with RootLayout setLockBlocking
+  const lastLockedRef = useRef<boolean | null>(null);
+
+  // Tell parent when locked/unlocked (ONLY when it changes)
   useEffect(() => {
     const lockedNow = shouldGate && gate !== 'unlocked';
+    if (lastLockedRef.current === lockedNow) return;
+
+    lastLockedRef.current = lockedNow;
     onLockedChange?.(lockedNow);
   }, [shouldGate, gate, onLockedChange]);
 
@@ -77,6 +78,10 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       setGate('unlocked');
       setBusy(false);
       authInProgressRef.current = false;
+
+      // keep parent in sync
+      lastLockedRef.current = false;
+      onLockedChange?.(false);
       return;
     }
 
@@ -114,11 +119,13 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       authInProgressRef.current = true;
 
       const res = await promptBiometric('Unlock Dritchwear');
-      lastAuthTimeRef.current = Date.now();
 
       console.log(`🔓 AppLockGate: Biometric result: ${res.success ? 'success' : 'failed'}`);
 
       if (res.success) {
+        // ✅ only set on success
+        lastAuthTimeRef.current = Date.now();
+
         setError(null);
         setGate('unlocked');
       } else {
@@ -144,7 +151,10 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
       setBusy(false);
       setError(null);
       authInProgressRef.current = false;
+
+      lastLockedRef.current = false;
       onLockedChange?.(false);
+
       return;
     }
 
@@ -159,31 +169,64 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldGate, user?.id]);
 
-  // Re-lock on background -> active
+  // Android-solid AppState handling:
+  // - lock immediately on background/inactive
+  // - delay auth on resume so prompt always shows
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       const prev = appState.current;
       appState.current = next;
 
+      // clear pending resume timers
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+
       // Don't lock if user is signed out
-      if (!user?.id) {
-        console.log('🔓 AppLockGate: No user on resume, staying unlocked');
+      if (!user?.id) return;
+
+      const isLeaving =
+        next === 'background' || next === 'inactive' || (next as any) === 'unknown';
+
+      const isReturning =
+        (prev === 'background' || prev === 'inactive' || (prev as any) === 'unknown') &&
+        next === 'active';
+
+      // Lock immediately when leaving app
+      if (isLeaving) {
+        if (shouldGate) {
+          console.log('🔒 AppLockGate: App went to background, locking immediately');
+          setGate('locked');
+          setError(null);
+        }
         return;
       }
 
-      if ((prev === 'background' || prev === 'inactive') && next === 'active') {
+      // Prompt biometrics when returning (delay is key on Android)
+      if (isReturning) {
         const justAuthed = Date.now() - lastAuthTimeRef.current < 4000;
+
         if (busy || authInProgressRef.current || justAuthed) {
           console.log('🔓 AppLockGate: Skipping lock on resume (recently authed or busy)');
           return;
         }
 
-        console.log('🔐 AppLockGate: App resumed, re-checking lock');
-        runLock();
+        console.log('🔐 AppLockGate: App resumed, prompting biometric');
+
+        resumeTimerRef.current = setTimeout(() => {
+          runLock();
+        }, 600);
       }
     });
 
-    return () => sub.remove();
+    return () => {
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+      sub.remove();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldGate, user?.id, busy]);
 
@@ -214,9 +257,7 @@ export default function AppLockGate({ children, onLockedChange }: Props) {
                   setError(null);
                   setBusy(true);
 
-                  // Clean sign out so login doesn’t throw errors
                   await supabase.auth.signOut();
-
                   router.replace('/(auth)/login');
                 } catch (e) {
                   console.log('🔒 AppLockGate: signOut error:', e);
