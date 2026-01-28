@@ -288,7 +288,7 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
         </View>
       ) : null}
 
-      <StatusBar style="dark" translucent={false} backgroundColor="#F9FAFB" hidden={false} />
+      <StatusBar style="dark" translucent={false} hidden={false} />
     </View>
   );
 }
