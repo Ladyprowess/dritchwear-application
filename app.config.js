@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Dritchwear',
   slug: 'dritchwear',
   version: '1.0.0',
-  orientation: 'portrait',
+  orientation: 'default',
 
   icon: './assets/images/icon.png',
 
@@ -22,15 +22,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   androidStatusBar: {
     barStyle: 'dark-content',
-    backgroundColor: '#000000',
-    translucent: true,
+    backgroundColor: '#F9FAFB',
+    translucent: false,
   },
-
+  
   androidNavigationBar: {
-    visible: 'leanback',
+    visible: 'visible',
     barStyle: 'dark-content',
-    backgroundColor: '#000000',
+    backgroundColor: '#F9FAFB',
   },
+  
 
   assetBundlePatterns: ['**/*'],
 
@@ -43,7 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: 'com.dritchwear.app',
     googleServicesFile: './google-services.json',
     softwareKeyboardLayoutMode: 'resize',
-    versionCode: 80,
+    versionCode: 85,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',
@@ -68,7 +69,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           compileSdkVersion: 35,
           targetSdkVersion: 35,
           minSdkVersion: 24,
-          enableEdgeToEdge: true,
+          enableEdgeToEdge: false,
         },
       },
     ],

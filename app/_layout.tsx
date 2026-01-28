@@ -4,10 +4,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View, Text, StyleSheet, ActivityIndicator, InteractionManager } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
 
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import * as SystemUI from 'expo-system-ui';
+
 import Constants from 'expo-constants';
 import 'react-native-url-polyfill/auto';
 
@@ -305,10 +306,18 @@ export default function RootLayout() {
   const [lockBlocking, setLockBlocking] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      void SystemUI.setBackgroundColorAsync('#F9FAFB').catch(() => {});
-    }
-  }, []);
+  if (Platform.OS !== 'android') return;
+
+  (async () => {
+    try {
+      await NavigationBar.setVisibilityAsync('visible'); // Play-friendly
+      await NavigationBar.setBackgroundColorAsync('#F9FAFB');
+      // Optional: keeps icons readable on light bg
+      await NavigationBar.setButtonStyleAsync('dark');
+    } catch {}
+  })();
+}, []);
+
 
   if (!fontsLoaded && !fontError) return null;
 

@@ -3,7 +3,7 @@
     "name": "Dritchwear",
     "slug": "dritchwear",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "dritchwear",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,7 @@
       "translucent": true
     },
     "androidNavigationBar": {
-      "visible": "sticky-immersive",
+      "visible": "visible",
       "backgroundColor": "#000000"
     },
     "splash": {
@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.dritchwear.app",
-      "versionCode": 80,
+      "versionCode": 85,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
