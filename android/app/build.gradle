@@ -110,6 +110,7 @@ android {
 }
 
 dependencies {
+
     implementation("com.facebook.react:react-android")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true"
@@ -132,4 +133,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    
 }

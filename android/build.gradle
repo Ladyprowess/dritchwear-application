@@ -20,7 +20,6 @@ allprojects {
     maven { url 'https://www.jitpack.io' }
   }
 
-  // ✅ Force newer versions to reduce Android 15 edge-to-edge deprecation warnings
   configurations.all {
     resolutionStrategy {
       force "com.google.android.material:material:1.13.0"
@@ -32,3 +31,14 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
+
+subprojects { subproject ->
+  if (subproject.name == "react-native-screens") {
+    subproject.plugins.withId("com.android.library") {
+      subproject.dependencies {
+        add("implementation", "com.google.android.material:material:1.13.0")
+      }
+    }
+  }
+}
