@@ -6,7 +6,7 @@ The **Dritchwear Application** is a mobile e-commerce platform built for **Dritc
 
 Users can browse, customise, and purchase high-quality streetwear items, with features for personalisation, order tracking, tax calculations, and secure payments via **PayPal** and **Paystack**.
 
-The app is developed using **React Native with Expo** for cross-platform compatibility (Android and iOS), **TypeScript** for type safety, and **Supabase** for backend services including database management and authentication.
+The app is developed using **React Native with Expo** for cross-platform compatibility (Android and iOS), **TypeScript** for type safety, and **Supabase** for backend services, including database management and authentication.
 
 This application enables individuals, businesses, and events to create and order custom designs that are produced and shipped worldwide from Nigeria. The focus is on a seamless and reliable user experience for people looking for made-to-order streetwear.
 
@@ -226,12 +226,10 @@ See the `LICENSE` file for full details.
 
 ## Contact
 
-- **Author**: Ngozi (Ladyprowess)  
-- **GitHub**: https://github.com/Ladyprowess  
-- **X (Twitter)**: @ladyprowess  
-- **Business**: Dritchwear – Custom streetwear made in Nigeria  
+- **Author**: Ngozi (Ladyprowess)   
+- **X (Twitter)**: @dritchwear
+- **Business**: Dritchwear – Wear it. Brand it. Gift it.
 - **Website**: https://dritchwear.com  
 - **Instagram**: @dritchwear  
-- **Email**: Contact via GitHub Issues or X for enquiries  
 
 For feedback or collaboration, feel free to reach out.
