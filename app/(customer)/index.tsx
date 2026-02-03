@@ -50,78 +50,114 @@ export default function HomeScreen() {
 
   
 
-const fetchProductsWithReviews = async () => {
-  try {
-    console.log('Fetching products...');
-    
-    // First check if we have a session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.log('No session found, skipping product fetch');
-      setLoading(false);
-      return;
-    }
-
-    // Fetch products
-    const { data: productsData, error: productsError } = await supabase
-      .from('product_card_data')
-      .select('*')
-      .eq('is_active', true)
-      .limit(6);
-
-    if (productsError) {
-      console.error('Error fetching products:', productsError);
-      if (!productsError.message.includes('Auth session missing')) {
-        Alert.alert('Error', 'Failed to load products');
+  const fetchProductsWithReviews = async () => {
+    try {
+      console.log('Fetching featured products...');
+  
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found, skipping product fetch');
+        setLoading(false);
+        return;
       }
-      return;
-    }
-
-    if (!productsData || productsData.length === 0) {
-      console.log('No products found');
-      setProducts([]);
-      return;
-    }
-
-    // Fetch review stats for all products
-    const productIds = productsData.map(p => p.id);
-    const { data: reviewsData, error: reviewsError } = await supabase
-      .from('reviews')
-      .select('product_id, rating')
-      .in('product_id', productIds);
-
-    if (reviewsError) {
-      console.error('Error fetching reviews:', reviewsError);
-      // Continue without reviews
-      setProducts(productsData);
-      return;
-    }
-
-    // Calculate review stats for each product
-    const productsWithReviews = productsData.map(product => {
-      const productReviews = reviewsData?.filter(r => r.product_id === product.id) || [];
-      const totalReviews = productReviews.length;
-      
-      let averageRating = 0;
-      if (totalReviews > 0) {
-        const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
-        averageRating = Math.round((totalRating / totalReviews) * 10) / 10;
+  
+      // 1) Get featured product IDs (admin-picked)
+      const { data: featuredRows, error: featuredError } = await supabase
+        .from('featured_products')
+        .select('product_id, position')
+        .eq('is_active', true)
+        .order('position', { ascending: true })
+        .limit(6);
+  
+      if (featuredError) {
+        console.error('Error fetching featured products:', featuredError);
       }
-
-      return {
-        ...product,
-        total_reviews: totalReviews,
-        average_rating: averageRating
-      };
-    });
-
-    console.log('Products with reviews:', productsWithReviews);
-    setProducts(productsWithReviews);
-    
-  } catch (error) {
-    console.error('Error in fetchProductsWithReviews:', error);
-  }
-};
+  
+      const featuredIds = (featuredRows || []).map(r => r.product_id);
+  
+      // 2) Fetch products (featured first, else fallback)
+      let productsData: any[] = [];
+  
+      if (featuredIds.length > 0) {
+        const { data, error } = await supabase
+          .from('product_card_data')
+          .select('*')
+          .eq('is_active', true)
+          .in('id', featuredIds);
+  
+        if (error) {
+          console.error('Error fetching featured product details:', error);
+          Alert.alert('Error', 'Failed to load featured products');
+          setProducts([]);
+          return;
+        }
+  
+        // Keep the admin order (because .in() won’t guarantee order)
+        const posMap = new Map(featuredRows!.map(r => [r.product_id, r.position]));
+        productsData = (data || []).sort((a, b) => {
+          return (posMap.get(a.id) ?? 999) - (posMap.get(b.id) ?? 999);
+        });
+      } else {
+        // Fallback: your old behaviour (latest 6 active)
+        const { data, error } = await supabase
+          .from('product_card_data')
+          .select('*')
+          .eq('is_active', true)
+          .limit(6);
+  
+        if (error) {
+          console.error('Error fetching products:', error);
+          if (!error.message.includes('Auth session missing')) {
+            Alert.alert('Error', 'Failed to load products');
+          }
+          return;
+        }
+  
+        productsData = data || [];
+      }
+  
+      if (!productsData || productsData.length === 0) {
+        console.log('No products found');
+        setProducts([]);
+        return;
+      }
+  
+      // 3) Fetch review stats
+      const productIds = productsData.map(p => p.id);
+  
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('reviews')
+        .select('product_id, rating')
+        .in('product_id', productIds);
+  
+      if (reviewsError) {
+        console.error('Error fetching reviews:', reviewsError);
+        setProducts(productsData as any);
+        return;
+      }
+  
+      const productsWithReviews = productsData.map(product => {
+        const productReviews = reviewsData?.filter(r => r.product_id === product.id) || [];
+        const totalReviews = productReviews.length;
+  
+        let averageRating = 0;
+        if (totalReviews > 0) {
+          const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
+          averageRating = Math.round((totalRating / totalReviews) * 10) / 10;
+        }
+  
+        return {
+          ...product,
+          total_reviews: totalReviews,
+          average_rating: averageRating,
+        };
+      });
+  
+      setProducts(productsWithReviews as any);
+    } catch (error) {
+      console.error('Error in fetchProductsWithReviews:', error);
+    }
+  };
 
 
   const fetchSpecialOffers = async () => {
@@ -219,7 +255,7 @@ const fetchProductsWithReviews = async () => {
   };
 
   const handleOrderSuccess = () => {
-    fetchProducts(); // Refresh products to update stock
+    fetchProductsWithReviews();
   };
 
   const currentOffer = specialOffers.length > 0 ? specialOffers[0] : null;

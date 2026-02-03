@@ -81,6 +81,9 @@ export default function AdminProductsScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
 
+  const [featuredMap, setFeaturedMap] = useState<Record<string, { position: number; is_active: boolean }>>({});
+const [featuredLoading, setFeaturedLoading] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -100,12 +103,17 @@ export default function AdminProductsScreen() {
   });
 
   const fetchProducts = async () => {
-    setLoading(true);
+    
+    setLoading(products.length === 0); 
+
+    
 
     const { data: rawProducts, error: productError } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
+
+     
 
     if (productError) {
       console.error('Error loading products:', productError.message);
@@ -143,8 +151,33 @@ export default function AdminProductsScreen() {
     setLoading(false);
   };
 
+  const fetchFeatured = async () => {
+    setFeaturedLoading(true);
+  
+    const { data, error } = await supabase
+      .from('featured_products')
+      .select('product_id, position, is_active')
+      .eq('is_active', true);
+  
+      if (error) {
+        console.error('Error loading featured:', error.message);
+        setFeaturedMap({}); // ✅ prevents stale featured UI
+        setFeaturedLoading(false);
+        return;
+      }
+  
+    const map: Record<string, { position: number; is_active: boolean }> = {};
+    (data || []).forEach((row: any) => {
+      map[row.product_id] = { position: row.position, is_active: row.is_active };
+    });
+  
+    setFeaturedMap(map);
+    setFeaturedLoading(false);
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchFeatured();
   }, []);
 
   useEffect(() => {
@@ -196,6 +229,41 @@ export default function AdminProductsScreen() {
 
     return () => {
       subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const sub = supabase
+      .channel('product-images-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'product_images' },
+        () => {
+          fetchProducts(); // refresh images immediately
+        }
+      )
+      .subscribe();
+  
+    return () => {
+      sub.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const sub = supabase
+      .channel('featured-products-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'featured_products' },
+        (payload: any) => {
+          console.log('Featured change detected:', payload);
+          fetchFeatured(); // simplest + safe
+        }
+      )
+      .subscribe();
+  
+    return () => {
+      sub.unsubscribe();
     };
   }, []);
 
@@ -320,6 +388,7 @@ export default function AdminProductsScreen() {
 
       closeModal();
       fetchProducts();
+      fetchFeatured();
     } catch (e) {
       console.error('Save product error:', e);
       Alert.alert('Error', 'Failed to save product');
@@ -338,6 +407,7 @@ export default function AdminProductsScreen() {
             if (error) throw error;
             Alert.alert('Success', 'Product deleted successfully');
             fetchProducts();
+            fetchFeatured();
           } catch (e) {
             console.error('Delete product error:', e);
             Alert.alert('Error', 'Failed to delete product');
@@ -356,9 +426,77 @@ export default function AdminProductsScreen() {
 
       if (error) throw error;
       fetchProducts();
+      fetchFeatured();
     } catch (e) {
       console.error('Toggle status error:', e);
       Alert.alert('Error', 'Failed to update product status');
+    }
+  };
+
+
+  const makeFeatured = async (productId: string, position: number) => {
+    try {
+      const { error } = await supabase
+        .from('featured_products')
+        .upsert(
+          { product_id: productId, position, is_active: true },
+          { onConflict: 'product_id' }
+        );
+  
+      if (error) throw error;
+  
+      await fetchFeatured();
+      Alert.alert('Success', `Product is now featured at position ${position}.`);
+    } catch (e: any) {
+      console.error('makeFeatured error:', e);
+      Alert.alert('Error', e?.message || 'Failed to feature product');
+    }
+  };
+  
+  const removeFeatured = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from('featured_products')
+        .update({ is_active: false })
+        .eq('product_id', productId);
+  
+      if (error) throw error;
+  
+      await fetchFeatured();
+      Alert.alert('Removed', 'Product removed from featured.');
+    } catch (e: any) {
+      console.error('removeFeatured error:', e);
+      Alert.alert('Error', e?.message || 'Failed to remove featured product');
+    }
+  };
+  
+  const promptFeaturedPosition = (productId: string) => {
+    // iOS only
+    // @ts-ignore
+    if (Alert.prompt) {
+      // @ts-ignore
+      Alert.prompt(
+        'Feature Product',
+        'Enter position (1 to 6)',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Save',
+            onPress: (value: string) => {
+              const pos = Number(value);
+              if (!pos || pos < 1 || pos > 6) {
+                Alert.alert('Invalid', 'Position must be between 1 and 6.');
+                return;
+              }
+              makeFeatured(productId, pos);
+            },
+          },
+        ],
+        'plain-text',
+        '1'
+      );
+    } else {
+      Alert.alert('Feature Product', 'This prompt works on iPhone only. If you want Android too, tell me and I will add a small modal input.');
     }
   };
 
@@ -372,8 +510,11 @@ export default function AdminProductsScreen() {
     return '#10B981';
   };
 
-  const renderProduct = (product: Product) => (
-    <View key={product.id} style={styles.productCard}>
+  const renderProduct = (product: Product) => {
+    const featured = featuredMap[product.id];
+  
+    return (
+      <View key={product.id} style={styles.productCard}>
       <View style={styles.productHeader}>
         <Image source={{ uri: product.image_url }} style={styles.productImage} resizeMode="cover" />
         <View style={styles.productInfo}>
@@ -383,6 +524,21 @@ export default function AdminProductsScreen() {
             </Text>
 
             <View style={styles.productActions}>
+            {featured ? (
+  <Pressable
+    style={[styles.actionButton, styles.featuredOnButton]}
+    onPress={() => removeFeatured(product.id)}
+  >
+    <Text style={styles.featuredBadgeText}>#{featured.position}</Text>
+  </Pressable>
+) : (
+  <Pressable
+    style={[styles.actionButton, styles.featuredOffButton]}
+    onPress={() => promptFeaturedPosition(product.id)}
+  >
+    <Text style={styles.featuredBadgeText}>F</Text>
+  </Pressable>
+)}
               <Pressable style={[styles.actionButton, styles.infoButton]} onPress={() => openDetailsModal(product)}>
                 <Info size={14} color="#FFFFFF" />
               </Pressable>
@@ -444,6 +600,7 @@ export default function AdminProductsScreen() {
       </View>
     </View>
   );
+};
 
   const allCategories = ['All', ...categories];
 
@@ -902,6 +1059,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+  },
+  featuredOnButton: {
+    backgroundColor: '#F59E0B',
+  },
+  featuredOffButton: {
+    backgroundColor: '#7C3AED',
+  },
+  featuredBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontFamily: 'Inter-Bold',
   },
   toggleThumbActive: { transform: [{ translateX: 20 }] },
 });

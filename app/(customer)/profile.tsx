@@ -24,13 +24,6 @@ import {
 } from 'lucide-react-native';
 import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
-import {
-  isBiometricSupported,
-  getBiometricEnabled,
-  setBiometricEnabled,
-  promptBiometric,
-  clearBiometricEnabled, // ✅ add
-} from '@/lib/biometrics';
 
 
 export default function ProfileScreen() {
@@ -50,68 +43,12 @@ export default function ProfileScreen() {
   });
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [biometricOn, setBiometricOn] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricSaving, setBiometricSaving] = useState(false);
   const { hardSignOut } = useAuth();
 
 
-  useEffect(() => {
-    (async () => {
-      if (!user?.id) return;
-      
-      try {
-        const supported = await isBiometricSupported();
-        const available = supported.hasHardware && supported.isEnrolled;
 
-        setBiometricAvailable(available);
 
-        if (available) {
-          // ✅ Pass user ID
-          setBiometricOn(await getBiometricEnabled(user.id));
-        } else {
-          setBiometricOn(false);
-        }
-      } catch (e) {
-        setBiometricAvailable(false);
-        setBiometricOn(false);
-      }
-    })();
-  }, [user?.id]);
 
-  const toggleBiometric = async () => {
-    if (biometricSaving || !user?.id) return;
-  
-    if (!biometricAvailable) {
-      Alert.alert('Biometrics not available', 'Please set up biometrics on your phone first.');
-      return;
-    }
-  
-    try {
-      setBiometricSaving(true);
-  
-      const next = !biometricOn;
-  
-      // If turning ON, confirm first
-      if (next) {
-        const res = await promptBiometric('Enable biometric lock');
-        if (!res.success) return;
-      }
-
-      // ✅ Pass user ID
-      await setBiometricEnabled(user.id, next);
-  
-      // ✅ Read back from storage to confirm the real value
-      const confirmed = await getBiometricEnabled(user.id);
-      setBiometricOn(confirmed);
-  
-      Alert.alert('Success', `Biometric lock turned ${confirmed ? 'on' : 'off'}.`);
-    } catch (e) {
-      Alert.alert('Error', 'Could not update biometric lock. Please try again.');
-    } finally {
-      setBiometricSaving(false);
-    }
-  };
 
   // Show loading state if profile is not loaded yet
   if (!profile) {
@@ -181,9 +118,6 @@ export default function ProfileScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            if (user?.id) {
-              await clearBiometricEnabled(user.id); // ✅ reset on logout
-            }
             await hardSignOut();
           },
           
@@ -287,14 +221,6 @@ Thank you.`;
   const menuItems = [
     { icon: History, title: 'Wallet History', subtitle: 'View all transactions', onPress: handleWalletHistory },
     { icon: Lock, title: 'Change Password', subtitle: 'Update your password', onPress: () => setChangingPassword(true) },
-    {
-      icon: Lock,
-      title: 'Biometric Lock',
-      subtitle: biometricAvailable ? (biometricOn ? 'On' : 'Off') : 'Not set up',
-      onPress: biometricAvailable
-        ? toggleBiometric
-        : () => Alert.alert('Biometrics not available', 'Set up biometrics on your phone first.'),
-    },
     { icon: Settings, title: 'Settings', subtitle: 'App preferences', onPress: handleSettings },
     { icon: HelpCircle, title: 'Help & Support', subtitle: 'Get assistance', onPress: handleHelpSupport },
   ];

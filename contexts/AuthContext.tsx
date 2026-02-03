@@ -6,7 +6,6 @@ import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Profile, getProfile } from '@/lib/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { clearBiometricEnabled } from '@/lib/biometrics';
 
 interface AuthContextType {
   user: User | null;
@@ -97,11 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2) Clear login timestamp
     await clearLastLoginAt();
-
-    // 3) Clear biometric state (SecureStore) for this user on this device
-    if (uid) {
-      await clearBiometricEnabled(uid);
-    }
 
     // 4) Try Supabase signOut (ignore "session missing")
     try {
@@ -337,10 +331,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setProfileLoaded(true);
             await clearLastLoginAt();
 
-            // ✅ Clear biometric SecureStore key (device-based)
-            if (uid) {
-              await clearBiometricEnabled(uid);
-            }
             break;
           }
 

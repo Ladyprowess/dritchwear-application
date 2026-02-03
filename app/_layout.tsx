@@ -15,7 +15,6 @@ import 'react-native-url-polyfill/auto';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
-import AppLockGate from '@/components/AppLockGate';
 
 import {
   registerForPushNotificationsAsync,
@@ -141,7 +140,7 @@ function PushNotificationSetup() {
   return null;
 }
 
-function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
+function RootLayoutContent() {
   const { user, isAdmin, isInitialized, loading, profileLoaded } = useAuth();
   const router = useRouter();
 
@@ -235,9 +234,6 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
     if (booting) return;
     if (errorLockedRef.current) return;
 
-    // if signed in, wait for lock to be confirmed unlocked
-    if (user?.id && lockBlocking !== false) return;
-
     if (didRouteRef.current) return;
     didRouteRef.current = true;
 
@@ -261,7 +257,7 @@ function RootLayoutContent({ lockBlocking }: { lockBlocking: boolean | null }) {
       console.error('Navigation error:', e);
       lockErrorAndShow();
     }
-  }, [booting, user?.id, isAdmin, router, lockBlocking]);
+  }, [booting, user?.id, isAdmin, router]);
 
   const showOverlay = booting || forceLoadingBeforeError || showStartError;
 
@@ -303,21 +299,18 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
   });
 
-  const [lockBlocking, setLockBlocking] = useState<boolean | null>(null);
-
   useEffect(() => {
-  if (Platform.OS !== 'android') return;
+    if (Platform.OS !== 'android') return;
 
-  (async () => {
-    try {
-      await NavigationBar.setVisibilityAsync('visible'); // Play-friendly
-      await NavigationBar.setBackgroundColorAsync('#F9FAFB');
-      // Optional: keeps icons readable on light bg
-      await NavigationBar.setButtonStyleAsync('dark');
-    } catch {}
-  })();
-}, []);
-
+    (async () => {
+      try {
+        await NavigationBar.setVisibilityAsync('visible'); // Play-friendly
+        await NavigationBar.setBackgroundColorAsync('#F9FAFB');
+        // Optional: keeps icons readable on light bg
+        await NavigationBar.setButtonStyleAsync('dark');
+      } catch {}
+    })();
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 
@@ -325,9 +318,7 @@ export default function RootLayout() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <AuthProvider>
         <CartProvider>
-          <AppLockGate onLockedChange={setLockBlocking}>
-            <RootLayoutContent lockBlocking={lockBlocking} />
-          </AppLockGate>
+          <RootLayoutContent />
         </CartProvider>
       </AuthProvider>
     </SafeAreaProvider>
