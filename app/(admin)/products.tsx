@@ -89,6 +89,11 @@ const [featuredLoading, setFeaturedLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+  const [showFeaturedModal, setShowFeaturedModal] = useState(false);
+const [featuredProductId, setFeaturedProductId] = useState<string | null>(null);
+const [featuredPosition, setFeaturedPosition] = useState('1');
+
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const productsRef = useRef<Product[]>([]);
@@ -476,36 +481,32 @@ useEffect(() => {
     }
   };
   
-  const promptFeaturedPosition = (productId: string) => {
-    // iOS only
-    // @ts-ignore
-    if (Alert.prompt) {
-      // @ts-ignore
-      Alert.prompt(
-        'Feature Product',
-        'Enter position (1 to 6)',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save',
-            onPress: (value: string) => {
-              const pos = Number(value);
-              if (!pos || pos < 1 || pos > 6) {
-                Alert.alert('Invalid', 'Position must be between 1 and 6.');
-                return;
-              }
-              makeFeatured(productId, pos);
-            },
-          },
-        ],
-        'plain-text',
-        '1'
-      );
-    } else {
-      Alert.alert('Feature Product', 'This prompt works on iPhone only. If you want Android too, tell me and I will add a small modal input.');
-    }
+  const openFeaturedModal = (productId: string) => {
+    setFeaturedProductId(productId);
+    setFeaturedPosition('1');
+    setShowFeaturedModal(true);
   };
-
+  
+  const closeFeaturedModal = () => {
+    setShowFeaturedModal(false);
+    setFeaturedProductId(null);
+    setFeaturedPosition('1');
+  };
+  
+  const saveFeaturedPosition = async () => {
+    const pos = Number(featuredPosition);
+  
+    if (!pos || pos < 1 || pos > 6) {
+      Alert.alert('Invalid', 'Position must be between 1 and 6.');
+      return;
+    }
+  
+    if (!featuredProductId) return;
+  
+    await makeFeatured(featuredProductId, pos);
+    closeFeaturedModal();
+  };
+  
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount);
 
@@ -540,7 +541,7 @@ useEffect(() => {
 ) : (
   <Pressable
     style={[styles.actionButton, styles.featuredOffButton]}
-    onPress={() => promptFeaturedPosition(product.id)}
+    onPress={() => openFeaturedModal(product.id)}
   >
     <Text style={styles.featuredBadgeText}>F</Text>
   </Pressable>
@@ -682,6 +683,47 @@ useEffect(() => {
       </ScrollView>
 
       <ProductDetailsModal product={selectedProduct} visible={showDetailsModal} onClose={closeDetailsModal} />
+
+{/* FEATURED POSITION MODAL - paste here */}
+<Modal
+  visible={showFeaturedModal}
+  transparent
+  animationType="fade"
+  onRequestClose={closeFeaturedModal}
+>
+  <TouchableWithoutFeedback onPress={closeFeaturedModal}>
+    <View style={styles.featuredOverlay}>
+      <TouchableWithoutFeedback>
+        <View style={styles.featuredCard}>
+          <Text style={styles.featuredTitle}>Feature Product</Text>
+          <Text style={styles.featuredSubtitle}>Enter position (1 to 6)</Text>
+
+          <TextInput
+            style={styles.featuredInput}
+            value={featuredPosition}
+            onChangeText={setFeaturedPosition}
+            keyboardType="numeric"
+            placeholder="1"
+            placeholderTextColor="#9CA3AF"
+          />
+
+          <View style={styles.featuredActions}>
+            <Pressable style={styles.featuredCancel} onPress={closeFeaturedModal}>
+              <Text style={styles.featuredCancelText}>Cancel</Text>
+            </Pressable>
+
+            <Pressable style={styles.featuredSave} onPress={saveFeaturedPosition}>
+              <Text style={styles.featuredSaveText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </View>
+  </TouchableWithoutFeedback>
+</Modal>
+
+
+
 
       {/* ✅ Modal with keyboard fix */}
       <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={closeModal}>
@@ -951,7 +993,7 @@ const styles = StyleSheet.create({
   productName: { flex: 1, fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#1F2937', marginRight: 8 },
 
   productActions: { flexDirection: 'row', gap: 6 },
-  actionButton: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  actionButton: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   infoButton: { backgroundColor: '#6B7280' },
   editButton: { backgroundColor: '#3B82F6' },
   deleteButton: { backgroundColor: '#EF4444' },
@@ -1077,5 +1119,71 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Inter-Bold',
   },
+
+  featuredOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  featuredCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+  },
+  featuredTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  featuredSubtitle: {
+    fontSize: 13,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  featuredInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+  },
+  featuredActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 14,
+  },
+  featuredCancel: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+  },
+  featuredCancelText: {
+    fontSize: 13,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+  },
+  featuredSave: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#7C3AED',
+  },
+  featuredSaveText: {
+    fontSize: 13,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  
   toggleThumbActive: { transform: [{ translateX: 20 }] },
 });
