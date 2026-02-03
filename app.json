@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.dritchwear.app",
-      "versionCode": 98,
+      "versionCode": 100,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

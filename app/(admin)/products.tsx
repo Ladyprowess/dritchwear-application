@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { supabase } from '@/lib/supabase';
 import {
   Package,
@@ -80,6 +81,7 @@ export default function AdminProductsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+  
 
   const [featuredMap, setFeaturedMap] = useState<Record<string, { position: number; is_active: boolean }>>({});
 const [featuredLoading, setFeaturedLoading] = useState(false);
@@ -89,6 +91,10 @@ const [featuredLoading, setFeaturedLoading] = useState(false);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const productsRef = useRef<Product[]>([]);
+useEffect(() => {
+  productsRef.current = products;
+}, [products]);
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -104,7 +110,7 @@ const [featuredLoading, setFeaturedLoading] = useState(false);
 
   const fetchProducts = async () => {
     
-    setLoading(products.length === 0); 
+    setLoading(productsRef.current.length === 0);
 
     
 
