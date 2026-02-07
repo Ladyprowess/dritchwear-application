@@ -6,7 +6,7 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.google.gms:google-services:4.4.1'
+        classpath 'com.google.gms:google-services:4.4.1'
     classpath('com.android.tools.build:gradle')
     classpath('com.facebook.react:react-native-gradle-plugin')
     classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
@@ -19,26 +19,7 @@ allprojects {
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
   }
-
-  configurations.all {
-    resolutionStrategy {
-      force "com.google.android.material:material:1.13.0"
-      force "androidx.core:core:1.15.0"
-      force "androidx.core:core-ktx:1.15.0"
-    }
-  }
 }
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
-
-
-subprojects { subproject ->
-  if (subproject.name == "react-native-screens") {
-    subproject.plugins.withId("com.android.library") {
-      subproject.dependencies {
-        add("implementation", "com.google.android.material:material:1.13.0")
-      }
-    }
-  }
-}

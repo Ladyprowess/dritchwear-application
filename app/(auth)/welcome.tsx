@@ -46,7 +46,7 @@ export default function WelcomeScreen() {
           <View style={styles.heroSection}>
             <Text style={styles.heroTitle}>Custom Streetwear {'\n'}& Branded Pieces</Text>
             <Text style={styles.heroSubtitle}>
-              Made in Nigeria for brands, events, and personal use - shipped worldwide
+            Streetwear and custom-branded products that represent your brand.
             </Text>
           </View>
 
