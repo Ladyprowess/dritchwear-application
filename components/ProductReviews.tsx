@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   adminNote: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   writeReviewButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   submitButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',

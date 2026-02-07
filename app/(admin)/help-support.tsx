@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  filterChipActive: { backgroundColor: '#5A2D82', borderColor: '#5A2D82' },
   filterText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#6B7280' },
   filterTextActive: { color: '#FFFFFF' },
 
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   ticketMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4 },
   customerName: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#6B7280' },
   metaSeparator: { fontSize: 12, color: '#9CA3AF' },
-  categoryName: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#7C3AED' },
+  categoryName: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#5A2D82' },
   ticketDescription: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#6B7280', lineHeight: 18 },
 
   ticketRight: { alignItems: 'flex-end', gap: 8 },

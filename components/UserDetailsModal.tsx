@@ -114,7 +114,7 @@ export default function UserDetailsModal({ user, visible, onClose }: UserDetails
   };
 
   const getRoleBadgeColor = (role: string) => {
-    return role === 'admin' ? '#7C3AED' : '#10B981';
+    return role === 'admin' ? '#5A2D82' : '#10B981';
   };
 
   return (
@@ -216,7 +216,7 @@ export default function UserDetailsModal({ user, visible, onClose }: UserDetails
             
             <View style={styles.walletCard}>
               <View style={styles.walletHeader}>
-                <Wallet size={24} color="#7C3AED" />
+                <Wallet size={24} color="#5A2D82" />
                 <Text style={styles.walletLabel}>Current Balance</Text>
               </View>
               <Text style={styles.walletBalance}>
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   walletCard: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',

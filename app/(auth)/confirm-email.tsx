@@ -112,7 +112,7 @@ export default function ConfirmEmailScreen() {
 
         <View style={styles.content}>
           <View style={styles.emailIcon}>
-            <Mail size={64} color="#7C3AED" />
+            <Mail size={64} color="#5A2D82" />
           </View>
 
           <Text style={styles.instructionTitle}>Check Your Email</Text>
@@ -134,7 +134,7 @@ export default function ConfirmEmailScreen() {
               onPress={handleResendConfirmation}
               disabled={resendLoading}
             >
-              <RefreshCw size={16} color="#7C3AED" />
+              <RefreshCw size={16} color="#5A2D82" />
               <Text style={styles.resendButtonText}>
                 {resendLoading ? 'Sending...' : 'Resend Confirmation Email'}
               </Text>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   emailHighlight: {
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   instructionText: {
     fontSize: 14,
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#5A2D82',
     gap: 8,
   },
   resendButtonDisabled: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   resendButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   secondaryButton: {
     height: 56,
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   footerLink: {
-    color: '#7C3AED',
+    color: '#5A2D82',
     fontFamily: 'Inter-SemiBold',
   },
   successContainer: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     width: '100%',
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',

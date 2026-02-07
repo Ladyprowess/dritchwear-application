@@ -276,7 +276,7 @@ const fetchDashboardData = async () => {
           style={styles.viewAllButton}
           onPress={() => router.push('/(admin)/orders')}
         >
-          <Eye size={16} color="#7C3AED" />
+          <Eye size={16} color="#5A2D82" />
           <Text style={styles.viewAllText}>View All</Text>
         </Pressable>
       </View>
@@ -390,7 +390,7 @@ const fetchDashboardData = async () => {
               style={styles.actionCard}
               onPress={() => router.push('/(admin)/products')}
             >
-              <Package size={24} color="#7C3AED" />
+              <Package size={24} color="#5A2D82" />
               <Text style={styles.actionText}>Manage Products</Text>
             </Pressable>
             
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   scrollView: {
     flex: 1,
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   ordersCard: {
     backgroundColor: '#FFFFFF',
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customOrderBadge: {
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   customOrderText: {
     fontSize: 10,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   orderCustomer: {
     fontSize: 14,
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   currencyIndicator: {
     fontSize: 10,
     fontFamily: 'Inter-Regular',
-    color: '#7C3AED',
+    color: '#5A2D82',
     fontStyle: 'italic',
   },
   statusBadge: {

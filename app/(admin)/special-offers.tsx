@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   discountText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginBottom: 4,
   },
   promoCode: {
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   toggleActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   toggleThumb: {
     width: 24,

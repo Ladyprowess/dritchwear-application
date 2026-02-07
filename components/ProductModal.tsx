@@ -530,14 +530,14 @@ export default function ProductModal({ product, visible, onClose, onOrderSuccess
                       style={styles.quantityButton}
                       onPress={() => setQuantity(Math.max(1, quantity - 1))}
                     >
-                      <Minus size={20} color="#7C3AED" />
+                      <Minus size={20} color="#5A2D82" />
                     </Pressable>
                     <Text style={styles.quantityText}>{quantity}</Text>
                     <Pressable
                       style={styles.quantityButton}
                       onPress={() => setQuantity(quantity + 1)}
                     >
-                      <Plus size={20} color="#7C3AED" />
+                      <Plus size={20} color="#5A2D82" />
                     </Pressable>
                   </View>
                 </View>
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginBottom: 8,
   },
   ratingContainer: {
@@ -817,8 +817,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   optionButtonActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   checkIcon: {
     position: 'absolute',
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
   summaryPrice: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   reviewsSection: {
     paddingHorizontal: 20,
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,

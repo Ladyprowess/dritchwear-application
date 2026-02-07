@@ -530,7 +530,7 @@ const orderTotals = hasDeliveryAddress()
 
   {/* Address line */}
   <View style={styles.addressCard}>
-    <MapPin size={20} color="#7C3AED" />
+    <MapPin size={20} color="#5A2D82" />
     <TextInput
       style={styles.addressInput}
       value={deliveryAddress}
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   primaryBtnText: {
     fontSize: 14,
@@ -988,13 +988,13 @@ const styles = StyleSheet.create({
   finalTotalValue: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   paymentButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 12,
     paddingVertical: 16,
     marginBottom: 12,

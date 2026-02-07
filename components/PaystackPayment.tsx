@@ -63,7 +63,7 @@ export default function PaystackPayment({
             .amount {
                 font-size: 32px;
                 font-weight: bold;
-                color: #7C3AED;
+                color: #5A2D82;
                 margin-bottom: 20px;
             }
             
@@ -74,7 +74,7 @@ export default function PaystackPayment({
             }
             
             .pay-button {
-                background: #7C3AED;
+                background: #5A2D82;
                 color: white;
                 border: none;
                 padding: 16px 32px;

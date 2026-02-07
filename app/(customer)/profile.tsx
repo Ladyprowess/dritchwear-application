@@ -243,7 +243,7 @@ Thank you.`;
             <Text style={styles.headerTitle}>Profile</Text>
             {!editing && !changingPassword ? (
               <Pressable style={styles.editButton} onPress={() => setEditing(true)}>
-                <Edit3 size={16} color="#7C3AED" />
+                <Edit3 size={16} color="#5A2D82" />
                 <Text style={styles.editButtonText}>Edit</Text>
               </Pressable>
             ) : (
@@ -288,7 +288,7 @@ Thank you.`;
               <Text style={styles.userEmail}>{profile.email}</Text>
               
               <View style={styles.walletContainer}>
-                <Wallet size={16} color="#7C3AED" />
+                <Wallet size={16} color="#5A2D82" />
                 <Text style={styles.walletBalance}>
                   {formatCurrency(walletBalanceInPreferredCurrency, profile.preferred_currency || 'NGN')}
                 </Text>
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   editActions: {
     flexDirection: 'row',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },

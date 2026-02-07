@@ -340,14 +340,14 @@ const validateExistingPromo = async () => {
                     style={styles.quantityButton}
                     onPress={() => handleUpdateQuantity(index, -1)}
                   >
-                    <Minus size={16} color="#7C3AED" />
+                    <Minus size={16} color="#5A2D82" />
                   </Pressable>
                   <Text style={styles.quantityText}>{item.quantity}</Text>
                   <Pressable
                     style={styles.quantityButton}
                     onPress={() => handleUpdateQuantity(index, 1)}
                   >
-                    <Plus size={16} color="#7C3AED" />
+                    <Plus size={16} color="#5A2D82" />
                   </Pressable>
                 </View>
                 
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   shopButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   itemActions: {
     alignItems: 'flex-end',
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#F3F4F6',
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
   },
   promoButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   checkoutSection: {
     padding: 20,
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,

@@ -20,7 +20,7 @@ interface Customer {
 const notificationTypes = [
   { id: 'system', label: 'System Alert', icon: AlertCircle, color: '#EF4444' },
   { id: 'promo', label: 'Promotion', icon: Gift, color: '#F59E0B' },
-  { id: 'custom', label: 'Custom Message', icon: Bell, color: '#7C3AED' },
+  { id: 'custom', label: 'Custom Message', icon: Bell, color: '#5A2D82' },
 ];
 
 const audienceOptions = [
@@ -263,7 +263,7 @@ export default function AdminNotificationsScreen() {
               >
                 <option.icon 
                   size={20} 
-                  color={selectedAudience === option.id ? '#7C3AED' : '#6B7280'} 
+                  color={selectedAudience === option.id ? '#5A2D82' : '#6B7280'} 
                 />
                 <Text
                   style={[
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   typeCardActive: {
-    borderColor: '#7C3AED',
+    borderColor: '#5A2D82',
     backgroundColor: '#FEFBFF',
   },
   typeIcon: {
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   typeLabelActive: {
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   audienceContainer: {
     gap: 12,
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   audienceCardActive: {
-    borderColor: '#7C3AED',
+    borderColor: '#5A2D82',
     backgroundColor: '#FEFBFF',
   },
   audienceLabel: {
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   audienceLabelActive: {
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   inputContainer: {
     marginBottom: 16,
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 12,
     padding: 16,
     gap: 8,
@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
   selectedCustomerChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
   selectedCustomerName: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   removeCustomerButton: {
     width: 16,
@@ -869,9 +869,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   customerItemSelected: {
-    backgroundColor: '#7C3AED10',
+    backgroundColor: '#5A2D8210',
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#5A2D82',
   },
   customerInfo: {
     flexDirection: 'row',
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
     flex: 2,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     alignItems: 'center',
   },
   modalConfirmButtonDisabled: {

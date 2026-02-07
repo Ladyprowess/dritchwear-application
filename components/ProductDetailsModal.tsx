@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   addImageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginBottom: 12,
   },
   productDescription: {
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   variantChip: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     gap: 6,
   },
   saveButtonDisabled: {

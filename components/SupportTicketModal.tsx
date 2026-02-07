@@ -247,7 +247,7 @@ if (isAdmin) {
           <View style={styles.senderInfo}>
             <View style={[
               styles.senderAvatar,
-              { backgroundColor: isAdminMessage ? '#7C3AED' : '#10B981' }
+              { backgroundColor: isAdminMessage ? '#5A2D82' : '#10B981' }
             ]}>
               <Text style={styles.senderAvatarText}>
                 {(profile?.full_name || profile?.email || '?').charAt(0).toUpperCase()}
@@ -574,8 +574,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   optionChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   optionText: {
     fontSize: 12,
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   adminBadge: {
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   inputContainer: {
     borderTopWidth: 1,
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },

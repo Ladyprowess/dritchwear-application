@@ -59,7 +59,7 @@ export default function IndexScreen() {
   if (!isInitialized || loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="#5A2D82" />
         <Text style={styles.loadingText}>
           {!isInitialized ? 'Initializing...' : 'Loading...'}
         </Text>
@@ -88,7 +88,7 @@ export default function IndexScreen() {
   // Rare fallback
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#7C3AED" />
+      <ActivityIndicator size="large" color="#5A2D82" />
       <Text style={styles.loadingText}>Redirecting...</Text>
     </View>
   );
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,

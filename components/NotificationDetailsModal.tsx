@@ -43,7 +43,7 @@ const typeConfig = {
   },
   custom: { 
     icon: Bell, 
-    color: '#7C3AED', 
+    color: '#5A2D82', 
     label: 'Message',
     description: 'Custom message from Dritchwear'
   },
@@ -277,7 +277,7 @@ const handleViewSupport = () => {
               <Text style={styles.actionTitle}>Quick Actions</Text>
               <View style={styles.actionButtons}>
                 <Pressable style={styles.actionButton} onPress={handleViewOrders}>
-                  <Package size={16} color="#7C3AED" />
+                  <Package size={16} color="#5A2D82" />
                   <Text style={styles.actionButtonText}>View Orders</Text>
                 </Pressable>
               </View>
@@ -289,7 +289,7 @@ const handleViewSupport = () => {
               <Text style={styles.actionTitle}>Quick Actions</Text>
               <View style={styles.actionButtons}>
                 <Pressable style={styles.actionButton} onPress={handleShopNow}>
-                  <Gift size={16} color="#7C3AED" />
+                  <Gift size={16} color="#5A2D82" />
                   <Text style={styles.actionButtonText}>Shop Now</Text>
                 </Pressable>
               </View>
@@ -300,7 +300,7 @@ const handleViewSupport = () => {
     <Text style={styles.actionTitle}>Quick Actions</Text>
     <View style={styles.actionButtons}>
       <Pressable style={styles.actionButton} onPress={handleViewSupport}>
-        <MessageCircle size={16} color="#7C3AED" />
+        <MessageCircle size={16} color="#5A2D82" />
         <Text style={styles.actionButtonText}>View Support</Text>
       </Pressable>
     </View>
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   unreadBadge: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     fontFamily: 'Inter-BoldItalic', // ✅ correct way
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginTop: 2,
   },
   
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   bottomActions: {
     flexDirection: 'row',
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   },
   markReadButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',

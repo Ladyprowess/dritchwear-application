@@ -426,7 +426,7 @@ INSERT INTO products (name, description, price, image_url, category, sizes, colo
 ('Dritchwear Classic Tee', 'Premium cotton t-shirt with signature Dritchwear logo', 15000, 'https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg', 'T-Shirts', ARRAY['XS', 'S', 'M', 'L', 'XL', 'XXL'], ARRAY['Black', 'White', 'Navy', 'Grey'], 50),
 ('Premium Joggers', 'Comfortable joggers perfect for casual wear', 25000, 'https://images.pexels.com/photos/7679720/pexels-photo-7679720.jpeg', 'Bottoms', ARRAY['S', 'M', 'L', 'XL', 'XXL'], ARRAY['Black', 'Grey', 'Navy'], 30),
 ('Oversized Hoodie', 'Cozy oversized hoodie with premium fabric', 35000, 'https://images.pexels.com/photos/8532612/pexels-photo-8532612.jpeg', 'Hoodies', ARRAY['S', 'M', 'L', 'XL', 'XXL'], ARRAY['Black', 'White', 'Grey', 'Beige'], 25),
-('Dritchwear Cap', 'Stylish cap with embroidered logo', 8000, 'https://images.pexels.com/photos/1722255/pexels-photo-1722255.jpeg', 'Accessories', ARRAY['One Size'], ARRAY['Black', 'White', 'Navy'], 40);
+('Dritchwear Cap', 'Stylish cap with embroidered logo', 8000, 'https://images.pexels.com/photos/1722255/pexels-photo-1722255.jpeg', 'Others', ARRAY['One Size'], ARRAY['Black', 'White', 'Navy'], 40);
 
 -- Insert sample promo codes
 INSERT INTO promo_codes (code, discount_percentage, min_order_amount, max_usage, is_active, expires_at) VALUES

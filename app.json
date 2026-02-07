@@ -3,6 +3,7 @@
     "name": "Dritchwear",
     "slug": "dritchwear",
     "version": "1.0.0",
+    
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "dritchwear",
@@ -78,7 +79,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#7C3AED",
+          "color": "#5A2D82",
           "sounds": [],
           "mode": "production"
         }

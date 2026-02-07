@@ -609,7 +609,7 @@ const derivedStatus = invoicePaid
                               resizeMode="contain"
                             />
                             <Pressable onPress={() => downloadImage(order.logo_url)} style={{ marginTop: 6 }}>
-                              <Text style={{ color: '#7C3AED', fontSize: 13, fontWeight: '600' }}>
+                              <Text style={{ color: '#5A2D82', fontSize: 13, fontWeight: '600' }}>
                                 Download Logo
                               </Text>
                             </Pressable>
@@ -1026,8 +1026,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   statusOptionActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   statusOptionText: {
     fontSize: 12,
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
   customOrderMetaItem: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   enhancedDetailsSection: {
     marginTop: 16,
@@ -1176,7 +1176,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 12,
     marginTop: 16,
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
   itemQuantity: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   itemPrice: {
     fontSize: 14,
@@ -1276,7 +1276,7 @@ const styles = StyleSheet.create({
   summaryTotalValue: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   paymentCard: {
     backgroundColor: '#F9FAFB',
@@ -1304,7 +1304,7 @@ const styles = StyleSheet.create({
   paymentCurrency: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#7C3AED',
+    color: '#5A2D82',
     fontStyle: 'italic',
   },
   modalOverlay: {
@@ -1354,7 +1354,7 @@ const styles = StyleSheet.create({
   currencyNote: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#7C3AED',
+    color: '#5A2D82',
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 8,
@@ -1393,7 +1393,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     alignItems: 'center',
   },
   invoiceModalSendText: {

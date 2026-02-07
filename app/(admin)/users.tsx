@@ -104,7 +104,7 @@ export default function AdminUsersScreen() {
   };
 
   const getRoleBadgeColor = (role: string) => {
-    return role === 'admin' ? '#7C3AED' : '#10B981';
+    return role === 'admin' ? '#5A2D82' : '#10B981';
   };
 
   const handleUserPress = (user: User) => {
@@ -162,7 +162,7 @@ export default function AdminUsersScreen() {
 
       <View style={styles.userFooter}>
         <View style={styles.walletInfo}>
-          <Wallet size={16} color="#7C3AED" />
+          <Wallet size={16} color="#5A2D82" />
           <Text style={styles.walletBalance}>
             {formatCurrency(user.wallet_balance)}
           </Text>
@@ -230,7 +230,7 @@ export default function AdminUsersScreen() {
             <View style={styles.activeFilter}>
               <Text style={styles.activeFilterText}>{selectedRole}</Text>
               <Pressable onPress={() => handleRoleFilterChange('All')}>
-                <X size={16} color="#7C3AED" />
+                <X size={16} color="#5A2D82" />
               </Pressable>
             </View>
           )}
@@ -238,7 +238,7 @@ export default function AdminUsersScreen() {
             <View style={styles.activeFilter}>
               <Text style={styles.activeFilterText}>"{searchQuery}"</Text>
               <Pressable onPress={() => handleSearchChange('')}>
-                <X size={16} color="#7C3AED" />
+                <X size={16} color="#5A2D82" />
               </Pressable>
             </View>
           )}
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   activeFilter: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   activeFilterText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   scrollView: {
     flex: 1,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   filterOptionActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   filterOptionText: {
     fontSize: 16,
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   searchButton: {
     marginHorizontal: 20,
     marginTop: 16,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',

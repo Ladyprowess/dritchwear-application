@@ -262,7 +262,7 @@ export default function PromoCodesScreen() {
               <Text style={styles.promoCode}>{promo.code}</Text>
               {promo.first_time_only && (
                 <View style={styles.firstTimeBadge}>
-                  <UserCheck size={12} color="#7C3AED" />
+                  <UserCheck size={12} color="#5A2D82" />
                   <Text style={styles.firstTimeBadgeText}>First Time Only</Text>
                 </View>
               )}
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
   firstTimeBadgeText: {
     fontSize: 11,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   promoActions: {
     flexDirection: 'row',
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
   discountText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginBottom: 2,
   },
   minOrderText: {
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   toggleActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   toggleThumb: {
     width: 24,

@@ -344,7 +344,7 @@ export default function AnalyticsScreen() {
       case 'order':
         return '#3B82F6';
       case 'custom_order':
-        return '#7C3AED';
+        return '#5A2D82';
       case 'customer':
         return '#10B981';
       default:
@@ -372,7 +372,7 @@ export default function AnalyticsScreen() {
       value: analytics.totalCustomers.toLocaleString(),
       growth: analytics.customerGrowth,
       icon: Users,
-      gradient: ['#8B5CF6', '#7C3AED'],
+      gradient: ['#8B5CF6', '#5A2D82'],
     },
     {
       title: 'Avg Order Value',
@@ -466,7 +466,7 @@ export default function AnalyticsScreen() {
                 <View key={index} style={styles.currencyBreakdownItem}>
                   <View style={styles.currencyBreakdownHeader}>
                     <View style={styles.currencyFlag}>
-                      <Globe size={16} color="#7C3AED" />
+                      <Globe size={16} color="#5A2D82" />
                       <Text style={styles.currencyCode}>{item.currency}</Text>
                     </View>
                     <Text style={styles.currencyRevenue}>
@@ -508,7 +508,7 @@ export default function AnalyticsScreen() {
                       <View
                         style={[
                           styles.bar,
-                          { height: `${height}%`, backgroundColor: '#7C3AED' }
+                          { height: `${height}%`, backgroundColor: '#5A2D82' }
                         ]}
                       />
                     </View>
@@ -651,8 +651,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   currencyOptionActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   currencyOptionText: {
     fontSize: 14,
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   currencyRevenue: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   currencyBreakdownDetails: {
     flexDirection: 'row',
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
   productRevenue: {
     fontSize: 14,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   activityCard: {
     backgroundColor: '#FFFFFF',
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
   activityOrderNumber: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginBottom: 2,
   },
   activityTime: {

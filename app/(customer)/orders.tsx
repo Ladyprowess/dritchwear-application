@@ -898,8 +898,8 @@ const styles = StyleSheet.create({
   
     
   filterChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   filterText: {
     fontSize: 14,
@@ -948,7 +948,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customOrderBadge: {
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
   customOrderText: {
     fontSize: 10,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   orderId: {
     fontSize: 16,
@@ -1092,7 +1092,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 12,
     gap: 6,

@@ -225,7 +225,7 @@ export default function FundWalletScreen() {
         {/* Current Balance */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <Wallet size={24} color="#7C3AED" />
+            <Wallet size={24} color="#5A2D82" />
             <Text style={styles.balanceLabel}>Current Balance</Text>
           </View>
           <Text style={styles.balanceAmount}>
@@ -309,7 +309,7 @@ export default function FundWalletScreen() {
           <View style={styles.paymentMethodCard}>
             {isNairaCurrency(selectedCurrency) ? (
               <>
-                <CreditCard size={24} color="#7C3AED" />
+                <CreditCard size={24} color="#5A2D82" />
                 <View style={styles.paymentMethodInfo}>
                   <Text style={styles.paymentMethodTitle}>Paystack</Text>
                   <Text style={styles.paymentMethodSubtitle}>
@@ -551,8 +551,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   quickAmountButtonActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   quickAmountText: {
     fontSize: 14,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   paymentMethodTitle: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
     marginBottom: 2,
   },
   paymentMethodSubtitle: {
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   fundButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

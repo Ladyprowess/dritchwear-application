@@ -25,7 +25,10 @@ interface Product {
   average_rating?: number;
 }
 
-const categories = ['All', 'T-Shirts', 'Hoodies', 'Polos', 'Joggers', 'Jackets', 'Sweatshirt', 'Shorts', 'Trousers', 'Merch', 'Accessories'];
+const BRAND_PURPLE = '#5A2D82';
+const BRAND_GOLD = '#FDB813';
+
+const categories = ['All', 'T-Shirts', 'Hoodies', 'Polos', 'Joggers', 'Jackets', 'Sweatshirt', 'Shorts', 'Trousers', 'Merch', 'Others'];
 
 export default function ShopScreen() {
   const { user, profile, refreshProfile } = useAuth();
@@ -183,15 +186,11 @@ export default function ShopScreen() {
               {formatCurrency(productPrice, userCurrency)}
             </Text>
             <View style={styles.ratingContainer}>
-              <Star
-                size={12}
-                color="#E5E7EB"
-                fill={
-                  product.total_reviews && product.total_reviews > 0
-                    ? '#F59E0B' // gold fill if reviews exist
-                    : '#E5E7EB' // gray fill if no reviews
-                }
-              />
+            <Star
+  size={12}
+  color="#E5E7EB"
+  fill={product.total_reviews && product.total_reviews > 0 ? BRAND_GOLD : '#E5E7EB'}
+/>
               <Text style={styles.ratingText}>
                 {product.total_reviews && product.total_reviews > 0
                   ? `${product.average_rating?.toFixed(1)} (${product.total_reviews})`
@@ -499,8 +498,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
+    borderColor: BRAND_PURPLE,
     height: 30,  
   },
   categoryText: {
@@ -556,7 +555,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     fontSize: 10,
     fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -570,7 +569,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -603,7 +602,7 @@ const styles = StyleSheet.create({
   moreText: {
     fontSize: 10,
     fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
   },
   stockInfo: {
     alignItems: 'flex-end',
@@ -681,8 +680,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   filterChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
+    borderColor: BRAND_PURPLE,
   },
   filterChipText: {
     fontSize: 14,
@@ -718,7 +717,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   applyButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',

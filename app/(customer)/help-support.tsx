@@ -367,7 +367,7 @@ export default function HelpSupportScreen() {
               {tickets.length > 3 && (
                 <Pressable style={styles.viewAllTickets}>
                   <Text style={styles.viewAllText}>View All Tickets</Text>
-                  <ChevronRight size={16} color="#7C3AED" />
+                  <ChevronRight size={16} color="#5A2D82" />
                 </Pressable>
               )}
             </View>
@@ -397,7 +397,7 @@ export default function HelpSupportScreen() {
         {/* Business Hours */}
         <View style={styles.section}>
           <View style={styles.hoursCard}>
-            <Clock size={24} color="#7C3AED" />
+            <Clock size={24} color="#5A2D82" />
             <View style={styles.hoursInfo}>
               <Text style={styles.hoursTitle}>Business Hours</Text>
               <Text style={styles.hoursText}>Monday - Friday: 9:00 AM - 6:00 PM</Text>
@@ -417,7 +417,7 @@ export default function HelpSupportScreen() {
                   style={styles.faqQuestion}
                   onPress={() => toggleFaq(index)}
                 >
-                  <HelpCircle size={20} color="#7C3AED" />
+                  <HelpCircle size={20} color="#5A2D82" />
                   <Text style={styles.faqQuestionText}>{faq.question}</Text>
                   <ChevronRight 
                     size={20} 
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   contactGrid: {
     gap: 12,
@@ -866,8 +866,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   categoryChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
   },
   categoryChipText: {
     fontSize: 12,
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 12,
     gap: 8,

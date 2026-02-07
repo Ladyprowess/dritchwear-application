@@ -20,7 +20,7 @@ const typeConfig = {
   order: { icon: Package, color: '#3B82F6' },
   promo: { icon: Gift, color: '#F59E0B' },
   system: { icon: AlertCircle, color: '#EF4444' },
-  custom: { icon: Bell, color: '#7C3AED' },
+  custom: { icon: Bell, color: '#5A2D82' },
 };
 
 export default function NotificationsScreen() {
@@ -254,7 +254,7 @@ export default function NotificationsScreen() {
         </View>
         {unreadCount > 0 && (
           <Pressable style={styles.markAllButton} onPress={markAllAsRead}>
-            <CheckCircle size={16} color="#7C3AED" />
+            <CheckCircle size={16} color="#5A2D82" />
             <Text style={styles.markAllText}>Mark all read</Text>
           </Pressable>
         )}
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   markAllText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   scrollView: {
     flex: 1,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   notificationCardUnread: {
     borderLeftWidth: 3,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: '#5A2D82',
     backgroundColor: '#FEFBFF',
   },
   notificationHeader: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     marginLeft: 8,
   },
   notificationMessage: {

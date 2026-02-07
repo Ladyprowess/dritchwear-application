@@ -11,6 +11,11 @@ import * as FileSystem from 'expo-file-system/legacy';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Crypto from 'expo-crypto';
 
+
+const BRAND_PURPLE = '#5A2D82';
+const BRAND_GOLD = '#FDB813';
+
+
 // Budget ranges in different currencies
 const budgetRanges = {
   NGN: [
@@ -414,7 +419,7 @@ if (!publicUrlData?.publicUrl) {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#1F2937" />
+          <ArrowLeft size={24} color={BRAND_PURPLE} />
         </Pressable>
         <Text style={styles.headerTitle}>Custom Order</Text>
         <View style={styles.placeholder} />
@@ -501,7 +506,7 @@ if (!publicUrlData?.publicUrl) {
                 >
                   <DollarSign 
                     size={16} 
-                    color={formData.budgetRange === range ? '#FFFFFF' : '#7C3AED'} 
+                    color={formData.budgetRange === range ? '#FFFFFF' : BRAND_PURPLE} 
                   />
                   <Text
                     style={[
@@ -622,7 +627,7 @@ if (!publicUrlData?.publicUrl) {
                 >
                   <Target 
                     size={16} 
-                    color={formData.logoPlacement === placement ? '#FFFFFF' : '#7C3AED'} 
+                    color={formData.logoPlacement === placement ? '#FFFFFF' : BRAND_PURPLE} 
                   />
                   <Text
                     style={[
@@ -704,7 +709,7 @@ if (!publicUrlData?.publicUrl) {
       style={{ marginTop: 10, alignSelf: 'flex-end' }}
       onPress={() => setShowDeadlinePicker(false)}
     >
-      <Text style={{ color: '#7C3AED', fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
+      <Text style={{ color: BRAND_PURPLE, fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
         Done
       </Text>
     </Pressable>
@@ -764,10 +769,12 @@ if (!publicUrlData?.publicUrl) {
   onPress={handleSubmit}
   disabled={loading}
 >
-<Image
-  source={require('@/assets/images/shop.png')}
-  style={styles.submitIcon}
-/>
+<View style={styles.submitIconCircle}>
+  <Image
+    source={require('@/assets/images/shop.png')}
+    style={styles.submitIcon}
+  />
+</View>
   <Text style={styles.submitButtonText}>
     {loading ? 'Submitting...' : 'Submit Custom Request'}
   </Text>
@@ -862,7 +869,7 @@ const styles = StyleSheet.create({
   currencyNote: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
     marginBottom: 12,
     fontStyle: 'italic',
   },
@@ -964,8 +971,8 @@ const styles = StyleSheet.create({
     minWidth: '45%',
   },
   placementOptionActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
+    borderColor: BRAND_PURPLE,
   },
   placementText: {
     fontSize: 12,
@@ -989,8 +996,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   budgetOptionActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
+    borderColor: BRAND_PURPLE,
   },
   budgetText: {
     fontSize: 16,
@@ -1018,7 +1025,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1038,7 +1045,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,
@@ -1068,7 +1075,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     resizeMode: 'contain',
-    tintColor: '#7C3AED',
     marginBottom: 6,
   },
   
@@ -1076,7 +1082,14 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     resizeMode: 'contain',
-    tintColor: '#FFFFFF',
+  },
+  submitIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorText: {
     fontSize: 12,

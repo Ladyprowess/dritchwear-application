@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   roleBadge: {
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   roleText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   section: {
     paddingHorizontal: 20,

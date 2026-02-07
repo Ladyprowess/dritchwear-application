@@ -79,7 +79,7 @@ export default function CurrencySelector({
                   </View>
                 </View>
                 {selectedCurrency === currency.code && (
-                  <Check size={20} color="#7C3AED" />
+                  <Check size={20} color="#5A2D82" />
                 )}
               </Pressable>
             ))}

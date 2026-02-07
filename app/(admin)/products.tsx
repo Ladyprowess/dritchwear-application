@@ -70,7 +70,7 @@ const categories = [
   'Shorts',
   'Trousers',
   'Merch',
-  'Accessories',
+  'Others',
 ];
 const defaultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const defaultColors = ['Black', 'White', 'Navy', 'Grey', 'Beige', 'Brown'];
@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  categoryChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  categoryChipActive: { backgroundColor: '#5A2D82', borderColor: '#5A2D82' },
   categoryText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#6B7280' },
   categoryTextActive: { color: '#FFFFFF' },
 
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   productDescription: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#6B7280', marginBottom: 8, lineHeight: 18 },
 
   productMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  productPrice: { fontSize: 16, fontFamily: 'Inter-Bold', color: '#7C3AED' },
+  productPrice: { fontSize: 16, fontFamily: 'Inter-Bold', color: '#5A2D82' },
 
   productCategoriesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' },
   productCategory: {
@@ -1047,7 +1047,7 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', gap: 8 },
 
   cancelButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
-  saveButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#7C3AED', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, gap: 6 },
+  saveButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#5A2D82', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, gap: 6 },
   saveButtonText: { fontSize: 14, fontFamily: 'Inter-SemiBold', color: '#FFFFFF' },
 
   modalContent: { flex: 1, paddingHorizontal: 20, paddingVertical: 16 },
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
 
   categorySelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   categoryOption: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  categoryOptionActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  categoryOptionActive: { backgroundColor: '#5A2D82', borderColor: '#5A2D82' },
   categoryOptionText: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#6B7280' },
   categoryOptionTextActive: { color: '#FFFFFF' },
 
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
   toggleInfo: { flex: 1 },
 
   toggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: '#E5E7EB', justifyContent: 'center', paddingHorizontal: 2 },
-  toggleActive: { backgroundColor: '#7C3AED' },
+  toggleActive: { backgroundColor: '#5A2D82' },
 
   toggleThumb: {
     width: 24,
@@ -1112,7 +1112,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   featuredOffButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   featuredBadgeText: {
     color: '#FFFFFF',
@@ -1177,7 +1177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   featuredSaveText: {
     fontSize: 13,

@@ -373,7 +373,7 @@ filterOrders(allItems, selectedStatus, searchQuery);
             <View style={styles.activeFilter}>
               <Text style={styles.activeFilterText}>{selectedStatus}</Text>
               <Pressable onPress={() => handleFilterChange('All')}>
-                <X size={16} color="#7C3AED" />
+                <X size={16} color="#5A2D82" />
               </Pressable>
             </View>
           )}
@@ -381,7 +381,7 @@ filterOrders(allItems, selectedStatus, searchQuery);
             <View style={styles.activeFilter}>
               <Text style={styles.activeFilterText}>"{searchQuery}"</Text>
               <Pressable onPress={() => handleSearchChange('')}>
-                <X size={16} color="#7C3AED" />
+                <X size={16} color="#5A2D82" />
               </Pressable>
             </View>
           )}
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   activeFilter: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
   activeFilterText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   scrollView: {
     flex: 1,
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customOrderBadge: {
-    backgroundColor: '#7C3AED20',
+    backgroundColor: '#5A2D8220',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   customOrderText: {
     fontSize: 10,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   orderId: {
     fontSize: 16,
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   currencyIndicator: {
     fontSize: 10,
     fontFamily: 'Inter-Regular',
-    color: '#7C3AED',
+    color: '#5A2D82',
     fontStyle: 'italic',
     marginBottom: 4,
   },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   viewDetails: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#7C3AED',
+    color: '#5A2D82',
   },
   emptyContainer: {
     flex: 1,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   filterOptionActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
   },
   filterOptionText: {
     fontSize: 16,
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   searchButton: {
     marginHorizontal: 20,
     marginTop: 16,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#5A2D82',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',

@@ -226,7 +226,7 @@ export default function WalletHistoryScreen() {
         {/* Current Balance */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <Wallet size={24} color="#7C3AED" />
+            <Wallet size={24} color="#5A2D82" />
             <Text style={styles.balanceLabel}>Current Balance</Text>
           </View>
           <Text style={styles.balanceAmount}>

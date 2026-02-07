@@ -15,7 +15,7 @@ export default function AdminLayout() {
         backBehavior="history"
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#7C3AED',
+          tabBarActiveTintColor: '#5A2D82',
           tabBarInactiveTintColor: '#9CA3AF',
           tabBarStyle: {
             backgroundColor: '#FFFFFF',
