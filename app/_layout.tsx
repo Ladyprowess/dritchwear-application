@@ -5,7 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View, Text, StyleSheet, ActivityIndicator, InteractionManager } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
-import ZoomOutSplash from "@/components/ZoomOutSplash";
+import AnimatedSplash from "@/components/AnimatedSplash";
 
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -156,11 +156,12 @@ function RootLayoutContent() {
   const didRouteRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
   const splashHiddenRef = useRef(false);
-  const [showZoomSplash, setShowZoomSplash] = useState(true);
+
 
   // ✅ timeout state (no "error" UI anymore)
   const [showTimeout, setShowTimeout] = useState(false);
   const timeoutLockedRef = useRef(false);
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
 
   const bootStartRef = useRef<number>(Date.now());
   const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -184,15 +185,10 @@ function RootLayoutContent() {
   };
 
   useEffect(() => {
-    hideSplashSafely();
+    requestAnimationFrame(() => hideSplashSafely());
   }, []);
 
-  useEffect(() => {
-    if (!booting) {
-      // once boot is done, make sure zoom splash is gone
-      setShowZoomSplash(false);
-    }
-  }, [booting]);
+
 
   // ✅ reset routing guard when user changes
   useEffect(() => {
@@ -306,17 +302,11 @@ function RootLayoutContent() {
       </Stack>
 
       {/* ✅ Overlay boot screen / timeout */}
-    {/* ✅ 1) Zoom-out splash animation */}
-{showZoomSplash && (
-  <ZoomOutSplash onDone={() => setShowZoomSplash(false)} />
+
+      {showAnimatedSplash && (
+  <AnimatedSplash onDone={() => setShowAnimatedSplash(false)} />
 )}
 
-{/* ✅ 2) Normal boot overlay (after animation) */}
-{!showZoomSplash && showOverlay && (
-  <View style={{ ...StyleSheet.absoluteFillObject, pointerEvents: showTimeout ? 'auto' : 'none' }}>
-    <AuthBootOverlay mode={showTimeout ? 'timeout' : 'loading'} />
-  </View>
-)}
       <StatusBar style="dark" translucent={false} hidden={false} />
     </View>
   );
