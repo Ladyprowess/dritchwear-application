@@ -35,6 +35,7 @@ const BRAND = {
   yellow: '#FDB813', // Dritchwear brand yellow
   softBg: '#F9FAFB',
 };
+const BOOT_TIMEOUT_MS = 8000;
 
 // ✅ time before we switch from Loading... to Timeout message
 
@@ -181,6 +182,17 @@ function RootLayoutContent() {
     hideSplashSafely();
     setShowTimeout(true);
   };
+
+  useEffect(() => {
+    hideSplashSafely();
+  }, []);
+
+  useEffect(() => {
+    if (!booting) {
+      // once boot is done, make sure zoom splash is gone
+      setShowZoomSplash(false);
+    }
+  }, [booting]);
 
   // ✅ reset routing guard when user changes
   useEffect(() => {
