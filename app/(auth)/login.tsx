@@ -1,31 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { signIn } from '@/lib/auth';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
-
-
+const BRAND_PURPLE = '#5A2D82';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   const confirmedParam = Array.isArray(params.confirmed)
-  ? params.confirmed[0]
-  : params.confirmed;
+    ? params.confirmed[0]
+    : params.confirmed;
 
-const [showConfirmedModal, setShowConfirmedModal] = useState(
-  confirmedParam === 'true'
-);
-
-
+  const [showConfirmedModal, setShowConfirmedModal] = useState(
+    confirmedParam === 'true'
+  );
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -35,15 +43,10 @@ const [showConfirmedModal, setShowConfirmedModal] = useState(
 
     setLoading(true);
 
-    // 🔥 ensure clean auth state before login
     await supabase.auth.signOut({ scope: 'local' });
-    
+
     const { error, needsConfirmation, email: userEmail } =
       await signIn({ email, password });
-    
-
-
-    
 
     if (error) {
       if (needsConfirmation) {
@@ -52,13 +55,14 @@ const [showConfirmedModal, setShowConfirmedModal] = useState(
           'Please confirm your email address before signing in. Check your email for a confirmation link.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Resend Email', 
-              onPress: () => router.push({
-                pathname: '/(auth)/resend-confirmation',
-                params: { email: userEmail || email }
-              })
-            }
+            {
+              text: 'Resend Email',
+              onPress: () =>
+                router.push({
+                  pathname: '/(auth)/resend-confirmation',
+                  params: { email: userEmail || email },
+                }),
+            },
           ]
         );
       } else {
@@ -67,48 +71,51 @@ const [showConfirmedModal, setShowConfirmedModal] = useState(
     } else {
       router.replace('/');
     }
+
     setLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="dark" />
+
       {showConfirmedModal && (
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalBox}>
-      <Text style={styles.modalTitle}>Account Created</Text>
-      <Text style={styles.modalText}>
-        Your account has been successfully registered. You can now log in.
-      </Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Account Created</Text>
+            <Text style={styles.modalText}>
+              Your account has been successfully registered. You can now log in.
+            </Text>
 
-      <Pressable
-  style={styles.modalButton}
-  onPress={() => {
-    setShowConfirmedModal(false);
-    router.replace('/(auth)/login'); // clears confirmed=true
-  }}
->
-  <Text style={styles.modalButtonText}>Back to Login</Text>
-</Pressable>
-    </View>
-  </View>
-)}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => {
+                setShowConfirmedModal(false);
+                router.replace('/(auth)/login');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Back to Login</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#1F2937" />
           </Pressable>
-          
+
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to your Dritchwear account</Text>
+          <Text style={styles.subtitle}>
+            Sign in to your Dritchwear account
+          </Text>
         </View>
 
         <View style={styles.form}>
@@ -170,7 +177,7 @@ const [showConfirmedModal, setShowConfirmedModal] = useState(
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Don't have an account?{' '}
-              <Text 
+              <Text
                 style={styles.footerLink}
                 onPress={() => router.push('/(auth)/register')}
               >
@@ -182,7 +189,7 @@ const [showConfirmedModal, setShowConfirmedModal] = useState(
           <View style={styles.helpSection}>
             <Text style={styles.helpText}>
               Need help with your account?{' '}
-              <Text 
+              <Text
                 style={styles.helpLink}
                 onPress={() => router.push('/(auth)/resend-confirmation')}
               >
@@ -280,15 +287,53 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
   },
   loginButton: {
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  footerText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  footerLink: {
+    color: BRAND_PURPLE,
+    fontFamily: 'Inter-SemiBold',
+  },
+  helpSection: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  helpText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
+  helpLink: {
+    color: BRAND_PURPLE,
+    fontFamily: 'Inter-SemiBold',
   },
   modalOverlay: {
     position: 'absolute',
@@ -300,9 +345,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
-    elevation: 100, // ✅ add this
+    elevation: 100,
   },
-  
   modalBox: {
     backgroundColor: '#FFFFFF',
     padding: 24,
@@ -322,52 +366,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     paddingVertical: 14,
     borderRadius: 12,
   },
   modalButtonText: {
     color: '#FFFFFF',
     textAlign: 'center',
-    fontFamily: 'Inter-SemiBold',
-  },
-  
-  loginButtonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 32,
-  },
-  footerText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  footerLink: {
-    color: '#7C3AED',
-    fontFamily: 'Inter-SemiBold',
-  },
-  helpSection: {
-    alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  helpText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-  helpLink: {
-    color: '#7C3AED',
     fontFamily: 'Inter-SemiBold',
   },
 });

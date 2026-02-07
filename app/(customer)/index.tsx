@@ -38,6 +38,13 @@ interface SpecialOffer {
   is_active: boolean;
 }
 
+  // ✅ Dritchwear brand colours (top-level)
+  const COLORS = {
+    purple: '#5A2D82',
+    gold: '#FDB813',
+    white: '#FFFFFF',
+  };
+
 export default function HomeScreen() {
   const { profile, refreshProfile, user } = useAuth();
   const router = useRouter();
@@ -48,7 +55,7 @@ export default function HomeScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
 
-  
+
 
   const fetchProductsWithReviews = async () => {
     try {
@@ -291,7 +298,10 @@ export default function HomeScreen() {
   </View>
 
   <View style={styles.walletWrapper}>
-    <LinearGradient colors={['#7C3AED', '#3B82F6']} style={styles.walletCard}>
+  <LinearGradient
+  colors={[COLORS.purple, COLORS.purple]}
+  style={styles.walletCard}
+>
       <View style={styles.walletContent}>
         <Wallet size={20} color="#FFFFFF" />
         <Text style={styles.walletBalance}>{getWalletBalance()}</Text>
@@ -306,7 +316,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActions}>
             <Pressable style={styles.actionCard} onPress={handleFundWallet}>
-              <Plus size={24} color="#7C3AED" />
+            <Plus size={24} color={COLORS.purple} />
               <Text style={styles.actionText}>Fund Wallet</Text>
             </Pressable>
             
@@ -364,11 +374,7 @@ export default function HomeScreen() {
                     <Star
   size={12}
   color="#E5E7EB"
-  fill={
-    item.total_reviews && item.total_reviews > 0
-      ? '#F59E0B'
-      : '#E5E7EB'
-  }
+  fill={item.total_reviews ? COLORS.gold : '#E5E7EB'}
 />
 <Text style={styles.ratingText}>
   {item.total_reviews && item.total_reviews > 0
@@ -399,10 +405,10 @@ export default function HomeScreen() {
   
         {/* Special Offer */}
         {currentOffer && (
-          <LinearGradient
-            colors={['#F59E0B', '#F97316']}
-            style={styles.promoBanner}
-          >
+         <LinearGradient
+         colors={[COLORS.purple, COLORS.purple]}
+         style={styles.promoBanner}
+       >
             <View style={styles.promoContent}>
               <View>
                 <Text style={styles.promoTitle}>{currentOffer.title}</Text>
@@ -419,10 +425,12 @@ export default function HomeScreen() {
 </Pressable>
 
               </View>
-              <Image
-  source={require('@/assets/images/logo.png')}
-  style={styles.promoSparkleIcon}
-/>
+              <View style={styles.promoLogoContainer}>
+  <Image
+    source={require('@/assets/images/logo.png')}
+    style={styles.promoSparkleIcon}
+  />
+</View>
 
             </View>
           </LinearGradient>
@@ -542,7 +550,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: COLORS.purple,
   },
   loadingContainer: {
     padding: 40,
@@ -601,18 +609,30 @@ const styles = StyleSheet.create({
   customOrderIcon: {
     width: 24,
     height: 24,
-    resizeMode: 'contain',
-    tintColor: '#F59E0B',
+   
   },
   
+  promoLogoContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  
+    // subtle shadow like your Welcome screen
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
   
   promoSparkleIcon: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     resizeMode: 'contain',
-    tintColor: '#FFFFFF',
   },
-  
   
   
   productName: {
@@ -631,7 +651,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#7C3AED',
+    color: COLORS.purple,
     marginBottom: 8,
   },
   productFooter: {
@@ -659,11 +679,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: COLORS.purple,
     borderRadius: 6,
     paddingVertical: 8,
     gap: 4,
   },
+
   quickBuyText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',

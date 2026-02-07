@@ -8,6 +8,11 @@ import { View, Text, StyleSheet, Pressable, Platform, AppState } from 'react-nat
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const BRAND = {
+  purple: '#5A2D82', // Dritchwear purple
+  gold: '#FDB813',   // Dritchwear gold
+};
+
 function CartTabIcon({ size, color }: { size: number; color: string }) {
   const { getTotalItems } = useCart();
   const itemCount = getTotalItems();
@@ -130,45 +135,42 @@ export default function CustomerLayout() {
     });
 
     const realtimeChannel = supabase
-  .channel(`notifications-all-${user.id}`)
-  .on(
-    'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'notifications',
-      // ✅ no filter here
-    },
-    async (payload) => {
-      const n = payload.new as any;
+      .channel(`notifications-all-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          // ✅ no filter here
+        },
+        async (payload) => {
+          const n = payload.new as any;
 
-      // ✅ only react to:
-      // - notifications for this user
-      // - broadcast notifications (user_id null)
-      if (n.user_id && n.user_id !== user.id) return;
+          // ✅ only react to:
+          // - notifications for this user
+          // - broadcast notifications (user_id null)
+          if (n.user_id && n.user_id !== user.id) return;
 
-      console.log('🔔 REALTIME NOTIF:', n);
+          console.log('🔔 REALTIME NOTIF:', n);
 
-      if (!cancelled) setShowBanner(true);
+          if (!cancelled) setShowBanner(true);
 
-      // ✅ if you treat null as unread, count it too
-      const isUnread = n.is_read === false || n.is_read == null;
-      if (!cancelled && isUnread) setUnreadCount((prev) => prev + 1);
+          // ✅ if you treat null as unread, count it too
+          const isUnread = n.is_read === false || n.is_read == null;
+          if (!cancelled && isUnread) setUnreadCount((prev) => prev + 1);
 
-      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-      bannerTimerRef.current = setTimeout(() => {
-        if (!cancelled) setShowBanner(false);
-      }, 6000);
+          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+          bannerTimerRef.current = setTimeout(() => {
+            if (!cancelled) setShowBanner(false);
+          }, 6000);
 
-      await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
-    }
-  )
-  .subscribe((status) => {
-    console.log('✅ realtime status:', status);
-  });
-
-
-  
+          await AsyncStorage.setItem(LAST_SEEN_KEY, n.created_at);
+        }
+      )
+      .subscribe((status) => {
+        console.log('✅ realtime status:', status);
+      });
 
     return () => {
       cancelled = true;
@@ -176,7 +178,6 @@ export default function CustomerLayout() {
 
       sub.remove();
       supabase.removeChannel(realtimeChannel);
-
     };
   }, [user?.id, refreshUnreadCount]);
 
@@ -192,7 +193,7 @@ export default function CustomerLayout() {
         backBehavior="history"
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#7C3AED',
+          tabBarActiveTintColor: BRAND.purple,
           tabBarInactiveTintColor: '#9CA3AF',
           tabBarStyle: {
             backgroundColor: '#FFFFFF',
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
   },
   bannerCta: {
-    color: '#A78BFA',
+    color: BRAND.gold,
     fontSize: 13,
     fontFamily: 'Inter-SemiBold',
   },

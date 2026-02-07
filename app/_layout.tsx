@@ -28,24 +28,30 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 // ✅ keep splash until we say so
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// ✅ minimum time to show loader before error (so error doesn’t “pop” instantly)
-const MIN_ERROR_LOADING_MS = 700;
+const BRAND = {
+  purple: '#5A2D82', // Dritchwear brand purple
+  yellow: '#FDB813', // Dritchwear brand yellow
+  softBg: '#F9FAFB',
+};
 
-function AuthBootOverlay({ showStartError }: { showStartError: boolean }) {
+// ✅ time before we switch from Loading... to Timeout message
+const BOOT_TIMEOUT_MS = 8000; // adjust (e.g. 6000, 8000, 12000)
+
+function AuthBootOverlay({ mode }: { mode: 'loading' | 'timeout' }) {
   return (
     <View style={styles.bootOverlay}>
-      {showStartError ? (
+      {mode === 'timeout' ? (
         <>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.bootTitle}>Oops! Something went wrong</Text>
+          <Text style={styles.errorIcon}>⏳</Text>
+          <Text style={styles.bootTitle}>Loading is taking too long</Text>
           <Text style={styles.bootMessage}>
-            There is an error while loading this page.{'\n'}
-            Kindly exit the app and reopen it again.
+            Please refresh the app.{'\n'}
+            Close it completely and open it again.
           </Text>
         </>
       ) : (
         <>
-          <ActivityIndicator size="large" color="#7C3AED" />
+          <ActivityIndicator size="large" color={BRAND.purple} />
           <Text style={styles.loadingText}>Loading...</Text>
         </>
       )}
@@ -148,13 +154,12 @@ function RootLayoutContent() {
   const lastUserIdRef = useRef<string | null>(null);
   const splashHiddenRef = useRef(false);
 
-  const [showStartError, setShowStartError] = useState(false);
-  const errorLockedRef = useRef(false);
+  // ✅ timeout state (no "error" UI anymore)
+  const [showTimeout, setShowTimeout] = useState(false);
+  const timeoutLockedRef = useRef(false);
 
-  // ✅ NEW: forces a short loading screen before showing error
-  const [forceLoadingBeforeError, setForceLoadingBeforeError] = useState(false);
   const bootStartRef = useRef<number>(Date.now());
-  const errorDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // derive "booting" (no early return!)
   const booting = !isInitialized || loading || (!!user?.id && !profileLoaded);
@@ -165,29 +170,13 @@ function RootLayoutContent() {
     void SplashScreen.hideAsync().catch(() => {});
   };
 
-  const lockErrorAndShow = () => {
-    if (errorLockedRef.current) return;
-    errorLockedRef.current = true;
+  const lockTimeoutAndShow = () => {
+    if (timeoutLockedRef.current) return;
+    timeoutLockedRef.current = true;
 
-    // Hide splash so we can show loader/error overlay
+    // show overlay (loading/timeout) instead of native red error
     hideSplashSafely();
-
-    // ✅ Always show a short loader first (so error doesn’t pop instantly)
-    setForceLoadingBeforeError(true);
-    setShowStartError(false);
-
-    const elapsed = Date.now() - bootStartRef.current;
-    const remaining = Math.max(0, MIN_ERROR_LOADING_MS - elapsed);
-
-    if (errorDelayTimerRef.current) {
-      clearTimeout(errorDelayTimerRef.current);
-      errorDelayTimerRef.current = null;
-    }
-
-    errorDelayTimerRef.current = setTimeout(() => {
-      setForceLoadingBeforeError(false);
-      setShowStartError(true);
-    }, remaining);
+    setShowTimeout(true);
   };
 
   // ✅ reset routing guard when user changes
@@ -198,41 +187,65 @@ function RootLayoutContent() {
       didRouteRef.current = false;
       splashHiddenRef.current = false;
 
-      // ✅ reset timer baseline for “loading before error”
+      // reset timer baseline
       bootStartRef.current = Date.now();
 
-      // ❌ do not reset error here (your original behaviour)
+      // IMPORTANT: don't reset showTimeout here
+      // because once timeout happens, you want manual refresh
     }
   }, [user?.id]);
 
-  // ✅ cleanup timer
+  // ✅ cleanup timer on unmount
   useEffect(() => {
     return () => {
-      if (errorDelayTimerRef.current) {
-        clearTimeout(errorDelayTimerRef.current);
-        errorDelayTimerRef.current = null;
+      if (timeoutTimerRef.current) {
+        clearTimeout(timeoutTimerRef.current);
+        timeoutTimerRef.current = null;
       }
     };
   }, []);
 
-  // ✅ boot timeout: if still booting after 6s -> lock error and stop everything
+  // ✅ boot timeout: show Loading... immediately, then switch to Timeout after BOOT_TIMEOUT_MS
   useEffect(() => {
-    if (errorLockedRef.current) return;
-    if (!booting) return;
+    if (timeoutLockedRef.current) return;
 
-    const t = setTimeout(() => {
-      if (!isInitialized || loading || !profileLoaded) {
-        lockErrorAndShow();
+    if (!booting) {
+      // boot done => clear timer and hide splash normally (navigation effect will handle hiding too)
+      if (timeoutTimerRef.current) {
+        clearTimeout(timeoutTimerRef.current);
+        timeoutTimerRef.current = null;
       }
-    }, 6000);
+      return;
+    }
 
-    return () => clearTimeout(t);
-  }, [booting, isInitialized, loading, profileLoaded]);
+    // show Loading... overlay (hide splash so the overlay is visible)
+    hideSplashSafely();
 
-  // ✅ routing effect: only route when booting is done AND no error locked
+    // restart timeout timer
+    if (timeoutTimerRef.current) {
+      clearTimeout(timeoutTimerRef.current);
+      timeoutTimerRef.current = null;
+    }
+
+    timeoutTimerRef.current = setTimeout(() => {
+      // still booting? show timeout message and lock navigation
+      if (!isInitialized || loading || (!!user?.id && !profileLoaded)) {
+        lockTimeoutAndShow();
+      }
+    }, BOOT_TIMEOUT_MS);
+
+    return () => {
+      if (timeoutTimerRef.current) {
+        clearTimeout(timeoutTimerRef.current);
+        timeoutTimerRef.current = null;
+      }
+    };
+  }, [booting, isInitialized, loading, profileLoaded, user?.id]);
+
+  // ✅ routing effect: only route when booting is done AND no timeout locked
   useEffect(() => {
     if (booting) return;
-    if (errorLockedRef.current) return;
+    if (timeoutLockedRef.current) return;
 
     if (didRouteRef.current) return;
     didRouteRef.current = true;
@@ -255,11 +268,11 @@ function RootLayoutContent() {
       });
     } catch (e) {
       console.error('Navigation error:', e);
-      lockErrorAndShow();
+      lockTimeoutAndShow();
     }
   }, [booting, user?.id, isAdmin, router]);
 
-  const showOverlay = booting || forceLoadingBeforeError || showStartError;
+  const showOverlay = booting || showTimeout;
 
   return (
     <View style={{ flex: 1 }}>
@@ -268,7 +281,7 @@ function RootLayoutContent() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#F9FAFB' },
+          contentStyle: { backgroundColor: 'transparent' },
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -277,10 +290,10 @@ function RootLayoutContent() {
         <Stack.Screen name="+not-found" />
       </Stack>
 
-      {/* ✅ Overlay boot screen / forced loading / error */}
+      {/* ✅ Overlay boot screen / timeout */}
       {showOverlay ? (
-        <View style={{ ...StyleSheet.absoluteFillObject, pointerEvents: showStartError ? 'auto' : 'none' }}>
-          <AuthBootOverlay showStartError={showStartError} />
+        <View style={{ ...StyleSheet.absoluteFillObject, pointerEvents: showTimeout ? 'auto' : 'none' }}>
+          <AuthBootOverlay mode={showTimeout ? 'timeout' : 'loading'} />
         </View>
       ) : null}
 
@@ -305,8 +318,12 @@ export default function RootLayout() {
     (async () => {
       try {
         await NavigationBar.setVisibilityAsync('visible'); // Play-friendly
-        await NavigationBar.setBackgroundColorAsync('#F9FAFB');
-        // Optional: keeps icons readable on light bg
+
+        // ✅ Edge-to-edge: background colour isn't supported (avoids warnings)
+        if (Platform.Version < 30) {
+          await NavigationBar.setBackgroundColorAsync('#F9FAFB');
+        }
+        
         await NavigationBar.setButtonStyleAsync('dark');
       } catch {}
     })();
@@ -332,7 +349,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: BRAND.softBg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,

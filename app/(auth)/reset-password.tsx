@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { resendConfirmation } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Mail, Send, CheckCircle } from 'lucide-react-native';
+
+const BRAND_PURPLE = '#5A2D82';
 
 export default function ResendConfirmationScreen() {
   const [email, setEmail] = useState('');
@@ -23,29 +35,34 @@ export default function ResendConfirmationScreen() {
     }
 
     setLoading(true);
-    const { error } = await resendConfirmation(email);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      setEmailSent(true);
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        setEmailSent(true);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to resend confirmation email. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (emailSent) {
     return (
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
               <ArrowLeft size={24} color="#1F2937" />
             </Pressable>
           </View>
@@ -54,25 +71,22 @@ export default function ResendConfirmationScreen() {
             <View style={styles.successIcon}>
               <CheckCircle size={64} color="#10B981" />
             </View>
-            
+
             <Text style={styles.successTitle}>Confirmation Email Sent!</Text>
             <Text style={styles.successSubtitle}>
               We've sent a new confirmation email to{'\n'}
               <Text style={styles.emailText}>{email}</Text>
             </Text>
-            
+
             <Text style={styles.instructionText}>
-              Click the link in the email to confirm your Dritchwear account. If you don't see the email, check your spam folder.
+              Click the link in the email to confirm your account. If you don't see the email, check your spam folder.
             </Text>
 
             <View style={styles.actionButtons}>
-              <Pressable
-                style={styles.primaryButton}
-                onPress={() => router.push('/(auth)/login')}
-              >
+              <Pressable style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
                 <Text style={styles.primaryButtonText}>Continue to Sign In</Text>
               </Pressable>
-              
+
               <Pressable
                 style={styles.secondaryButton}
                 onPress={() => {
@@ -90,23 +104,20 @@ export default function ResendConfirmationScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#1F2937" />
           </Pressable>
-          
+
           <Text style={styles.title}>Resend Confirmation</Text>
           <Text style={styles.subtitle}>
-            Enter your email address to receive a new Dritchwear confirmation email.
+            Enter your email address to receive a new confirmation email.
           </Text>
         </View>
 
@@ -127,7 +138,7 @@ export default function ResendConfirmationScreen() {
               />
             </View>
             <Text style={styles.inputHint}>
-              Make sure this is the same email you used to register with Dritchwear
+              Make sure this is the same email you used to register
             </Text>
           </View>
 
@@ -145,22 +156,21 @@ export default function ResendConfirmationScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>Why confirm your email?</Text>
             <View style={styles.infoList}>
-              <Text style={styles.infoItem}>• Secure your Dritchwear account</Text>
-              <Text style={styles.infoItem}>• Receive order updates and tracking</Text>
-              <Text style={styles.infoItem}>• Get exclusive fashion offers</Text>
+              <Text style={styles.infoItem}>• Secure your account</Text>
+              <Text style={styles.infoItem}>• Receive order updates</Text>
+              <Text style={styles.infoItem}>• Get exclusive offers</Text>
               <Text style={styles.infoItem}>• Reset your password if needed</Text>
-              <Text style={styles.infoItem}>• Access premium customer support</Text>
             </View>
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Need help?{' '}
-              <Text 
+              <Text
                 style={styles.footerLink}
                 onPress={() => router.push('/(customer)/help-support')}
               >
-                Contact Dritchwear Support
+                Contact Support
               </Text>
             </Text>
           </View>
@@ -247,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     gap: 8,
     marginBottom: 24,
@@ -293,7 +303,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   footerLink: {
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
     fontFamily: 'Inter-SemiBold',
   },
   successContainer: {
@@ -322,7 +332,7 @@ const styles = StyleSheet.create({
   },
   emailText: {
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
   },
   instructionText: {
     fontSize: 14,
@@ -338,7 +348,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',

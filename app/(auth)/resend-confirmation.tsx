@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Mail, Send, CheckCircle } from 'lucide-react-native';
+
+const BRAND_PURPLE = '#5A2D82';
 
 export default function ResendConfirmationScreen() {
   const [email, setEmail] = useState('');
@@ -43,17 +55,14 @@ export default function ResendConfirmationScreen() {
 
   if (emailSent) {
     return (
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
               <ArrowLeft size={24} color="#1F2937" />
             </Pressable>
           </View>
@@ -62,25 +71,22 @@ export default function ResendConfirmationScreen() {
             <View style={styles.successIcon}>
               <CheckCircle size={64} color="#10B981" />
             </View>
-            
+
             <Text style={styles.successTitle}>Confirmation Email Sent!</Text>
             <Text style={styles.successSubtitle}>
               We've sent a new confirmation email to{'\n'}
               <Text style={styles.emailText}>{email}</Text>
             </Text>
-            
+
             <Text style={styles.instructionText}>
               Click the link in the email to confirm your account. If you don't see the email, check your spam folder.
             </Text>
 
             <View style={styles.actionButtons}>
-              <Pressable
-                style={styles.primaryButton}
-                onPress={() => router.push('/(auth)/login')}
-              >
+              <Pressable style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
                 <Text style={styles.primaryButtonText}>Continue to Sign In</Text>
               </Pressable>
-              
+
               <Pressable
                 style={styles.secondaryButton}
                 onPress={() => {
@@ -98,20 +104,17 @@ export default function ResendConfirmationScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#1F2937" />
           </Pressable>
-          
+
           <Text style={styles.title}>Resend Confirmation</Text>
           <Text style={styles.subtitle}>
             Enter your email address to receive a new confirmation email.
@@ -163,7 +166,7 @@ export default function ResendConfirmationScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Need help?{' '}
-              <Text 
+              <Text
                 style={styles.footerLink}
                 onPress={() => router.push('/(customer)/help-support')}
               >
@@ -254,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     gap: 8,
     marginBottom: 24,
@@ -300,7 +303,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   footerLink: {
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
     fontFamily: 'Inter-SemiBold',
   },
   successContainer: {
@@ -329,7 +332,7 @@ const styles = StyleSheet.create({
   },
   emailText: {
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
   },
   instructionText: {
     fontSize: 14,
@@ -345,7 +348,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',

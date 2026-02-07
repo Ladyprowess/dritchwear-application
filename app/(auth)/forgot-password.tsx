@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { resetPassword } from '@/lib/auth';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react-native';
+
+const BRAND_PURPLE = '#5A2D82';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -24,7 +36,7 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     const { error } = await resetPassword(email);
-    
+
     if (error) {
       Alert.alert('Error', error.message);
     } else {
@@ -35,17 +47,14 @@ export default function ForgotPasswordScreen() {
 
   if (emailSent) {
     return (
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
               <ArrowLeft size={24} color="#1F2937" />
             </Pressable>
           </View>
@@ -54,25 +63,22 @@ export default function ForgotPasswordScreen() {
             <View style={styles.successIcon}>
               <CheckCircle size={64} color="#10B981" />
             </View>
-            
+
             <Text style={styles.successTitle}>Check Your Email</Text>
             <Text style={styles.successSubtitle}>
               We've sent a password reset link to{'\n'}
               <Text style={styles.emailText}>{email}</Text>
             </Text>
-            
+
             <Text style={styles.instructionText}>
               Click the link in the email to reset your password. If you don't see the email, check your spam folder.
             </Text>
 
             <View style={styles.actionButtons}>
-              <Pressable
-                style={styles.primaryButton}
-                onPress={() => router.push('/(auth)/login')}
-              >
+              <Pressable style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
                 <Text style={styles.primaryButtonText}>Back to Sign In</Text>
               </Pressable>
-              
+
               <Pressable
                 style={styles.secondaryButton}
                 onPress={() => {
@@ -90,20 +96,17 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#1F2937" />
           </Pressable>
-          
+
           <Text style={styles.title}>Forgot Password?</Text>
           <Text style={styles.subtitle}>
             No worries! Enter your email address and we'll send you a link to reset your password.
@@ -141,10 +144,7 @@ export default function ForgotPasswordScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Remember your password?{' '}
-              <Text 
-                style={styles.footerLink}
-                onPress={() => router.push('/(auth)/login')}
-              >
+              <Text style={styles.footerLink} onPress={() => router.push('/(auth)/login')}>
                 Sign In
               </Text>
             </Text>
@@ -221,9 +221,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#1F2937',
   },
+
   resetButton: {
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -237,6 +238,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
+
   footer: {
     alignItems: 'center',
     marginTop: 32,
@@ -247,9 +249,10 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   footerLink: {
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
     fontFamily: 'Inter-SemiBold',
   },
+
   successContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -276,7 +279,7 @@ const styles = StyleSheet.create({
   },
   emailText: {
     fontFamily: 'Inter-SemiBold',
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
   },
   instructionText: {
     fontSize: 14,
@@ -292,7 +295,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',

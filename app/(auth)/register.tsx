@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { signUp } from '@/lib/auth';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
+
+const BRAND_PURPLE = '#5A2D82';
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
@@ -22,17 +34,14 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     const { fullName, email, phone, password, confirmPassword } = formData;
-  
+
     if (!fullName || !email || !phone || !password) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
-  
-    // ✅ Clean + normalise phone (Nigeria default) + validate (global)
+
     let phoneValue = phone.replace(/[^\d+]/g, '');
 
-  
-    // If user didn't type a country code, assume Nigeria (+234)
     if (!phoneValue.startsWith('+')) {
       Alert.alert(
         'Invalid Phone Number',
@@ -40,9 +49,7 @@ export default function RegisterScreen() {
       );
       return;
     }
-    
-  
-    // Global E.164 validation
+
     if (!/^\+[1-9]\d{9,14}$/.test(phoneValue)) {
       Alert.alert(
         'Invalid Phone Number',
@@ -50,26 +57,26 @@ export default function RegisterScreen() {
       );
       return;
     }
-  
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-  
+
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
-  
+
     setLoading(true);
-  
+
     const { error, needsConfirmation, email: userEmail } = await signUp({
       email,
       password,
       fullName,
       phone: phoneValue,
     });
-  
+
     if (error) {
       Alert.alert('Registration Failed', error.message);
     } else if (needsConfirmation) {
@@ -84,32 +91,30 @@ export default function RegisterScreen() {
         [{ text: 'OK', onPress: () => router.replace('/') }]
       );
     }
-  
+
     setLoading(false);
   };
-  
 
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#1F2937" />
           </Pressable>
-          
+
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join Dritchwear and start your fashion journey</Text>
+          <Text style={styles.subtitle}>
+            Join Dritchwear and start your fashion journey
+          </Text>
         </View>
 
         <View style={styles.form}>
@@ -140,24 +145,21 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-          <Text style={styles.label}>
-  Phone Number * <Text style={styles.hint}>(include country code, e.g. +234)</Text>
-</Text>
+            <Text style={styles.label}>
+              Phone Number * <Text style={styles.hint}>(include country code, e.g. +234)</Text>
+            </Text>
 
-          <TextInput
-  style={styles.input}
-  value={formData.phone}
-  onChangeText={(value) => updateFormData('phone', value)}
-  placeholder="Enter your phone number"
-  placeholderTextColor="#9CA3AF"
-  keyboardType="phone-pad"
-  autoComplete="tel"
-  autoCapitalize="none"
-/>
-
+            <TextInput
+              style={styles.input}
+              value={formData.phone}
+              onChangeText={(value) => updateFormData('phone', value)}
+              placeholder="Enter your phone number"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              autoCapitalize="none"
+            />
           </View>
-
-          
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password *</Text>
@@ -173,10 +175,7 @@ export default function RegisterScreen() {
                 secureTextEntry={!showPassword}
                 autoComplete="password-new"
               />
-              <Pressable
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
+              <Pressable style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? (
                   <EyeOff size={20} color="#9CA3AF" />
                 ) : (
@@ -230,10 +229,7 @@ export default function RegisterScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Already have an account?{' '}
-              <Text 
-                style={styles.footerLink}
-                onPress={() => router.push('/(auth)/login')}
-              >
+              <Text style={styles.footerLink} onPress={() => router.push('/(auth)/login')}>
                 Sign In
               </Text>
             </Text>
@@ -291,6 +287,11 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
+  hint: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
   input: {
     height: 56,
     borderWidth: 1,
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     height: 56,
-    backgroundColor: '#7C3AED',
+    backgroundColor: BRAND_PURPLE,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -338,12 +339,6 @@ const styles = StyleSheet.create({
   registerButtonDisabled: {
     opacity: 0.6,
   },
-  hint: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  
   registerButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
@@ -359,7 +354,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   footerLink: {
-    color: '#7C3AED',
+    color: BRAND_PURPLE,
     fontFamily: 'Inter-SemiBold',
   },
 });
