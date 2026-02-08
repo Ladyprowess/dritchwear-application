@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import { Package, Filter, Search, MoreHorizontal, CheckCircle, XCircle, X, Star } from 'lucide-react-native';
 import OrderDetailsModal from '@/components/OrderDetailsModal';
 import PaystackPayment from '@/components/PaystackPayment';
-import PayPalPayment from '@/components/PayPalPayment';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import Constants from 'expo-constants';
 
@@ -423,18 +422,6 @@ export default function CustomerOrdersScreen() {
       setPaymentOrder(customRequest);
       setShowPaystack(true);
     } else {
-      const paypalClientId = Constants.expoConfig?.extra?.EXPO_PUBLIC_PAYPAL_CLIENT_ID;
-      console.log('🔍 PayPal Client ID check:', paypalClientId ? 'SET' : 'NOT SET');
-      
-      if (!paypalClientId) {
-        Alert.alert(
-          'Payment Not Available',
-          'PayPal is not configured. Please contact support.',
-          [{ text: 'OK' }]
-        );
-        setLoading(false);
-        return;
-      }
       
       setPaymentInvoice(invoice);
       setPaymentOrder(customRequest);
@@ -506,12 +493,9 @@ export default function CustomerOrdersScreen() {
           status: 'completed',
           currency: paymentInvoice.currency || 'USD',
           original_amount: paymentInvoice.original_amount,
-          payment_provider: 'paypal'
         });
 
       if (transactionError) throw transactionError;
-
-      await completePayment(paymentInvoice, paymentOrder, 'paypal');
     } catch (error) {
       console.error('Error processing PayPal payment:', error);
       Alert.alert('Error', 'Payment was successful but failed to update order. Please contact support.');

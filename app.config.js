@@ -61,11 +61,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
 
   plugins: [
-    // ✅ Date picker plugin (required)
     '@react-native-community/datetimepicker',
     'expo-secure-store',
-
-    // ✅ Existing build properties (kept exactly as-is)
     [
       'expo-build-properties',
       {
@@ -78,4 +75,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
   ],
+
+  extra: {
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  },
 });

@@ -23,7 +23,7 @@ Mobile App → Supabase Edge Function → PayPal API → Database Logging
 ## 🔧 PayPal Business Account Setup
 
 ### 1. Create Production App
-1. Go to [PayPal Developer Dashboard](https://developer.paypal.com/)
+1. Go to [PayPal Developer Dashboard](https://developer..com/)
 2. Switch to **Live** environment
 3. Create new app with these settings:
    - **App Type**: Default Application
@@ -36,7 +36,7 @@ Mobile App → Supabase Edge Function → PayPal API → Database Logging
   "app_name": "Dritchwear Production",
   "return_url": "https://dritchwear.com/payment/success",
   "cancel_url": "https://dritchwear.com/payment/cancel",
-  "webhook_url": "https://your-project.supabase.co/functions/v1/paypal-payment"
+  "webhook_url": "https://your-project.supabase.co/functions/v1/-payment"
 }
 ```
 
@@ -115,16 +115,16 @@ PAYPAL_CLIENT_SECRET=your_sandbox_client_secret
 ## 📊 Monitoring & Analytics
 
 ### 1. Transaction Logging
-All PayPal activities are logged in the `paypal_transactions` table:
+All PayPal activities are logged in the `_transactions` table:
 ```sql
 SELECT 
-  paypal_order_id,
+  _order_id,
   amount,
   currency,
   status,
   transaction_type,
   created_at
-FROM paypal_transactions
+FROM _transactions
 WHERE created_at >= NOW() - INTERVAL '24 hours'
 ORDER BY created_at DESC;
 ```
@@ -238,7 +238,7 @@ function verifyWebhookSignature(payload: string, signature: string): boolean {
 ### 1. PayPal Support
 - **Merchant Support**: For account and integration issues
 - **Developer Support**: For technical API questions
-- **Documentation**: [PayPal Developer Docs](https://developer.paypal.com/docs/)
+- **Documentation**: [PayPal Developer Docs](https://developer..com/docs/)
 
 ### 2. Common Issues
 - **"Something went wrong"**: Check API payload format
@@ -274,15 +274,15 @@ function verifyWebhookSignature(payload: string, signature: string): boolean {
 
 ```bash
 # Deploy Edge Function
-supabase functions deploy paypal-payment
+supabase functions deploy -payment
 
 # Test in sandbox
-curl -X POST "https://your-project.supabase.co/functions/v1/paypal-payment" \
+curl -X POST "https://your-project.supabase.co/functions/v1/-payment" \
   -H "Content-Type: application/json" \
   -d '{"action":"create-order","amount":1.00,"currency":"USD","customerEmail":"test@example.com"}'
 
 # Check transaction logs
-psql -c "SELECT * FROM paypal_transactions ORDER BY created_at DESC LIMIT 10;"
+psql -c "SELECT * FROM _transactions ORDER BY created_at DESC LIMIT 10;"
 ```
 
 This production-ready setup ensures secure, reliable, and scalable PayPal payment processing for your application.

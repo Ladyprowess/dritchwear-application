@@ -9,7 +9,7 @@ import { ArrowLeft, MapPin, CreditCard, Wallet, X, Tag } from 'lucide-react-nati
 import { calculateOrderTotal } from '@/lib/fees';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
 import PaystackPayment from '@/components/PaystackPayment';
-import PayPalPayment from '@/components/PayPalPayment';
+
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function CheckoutScreen() {
 const [deliveryCountry, setDeliveryCountry] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPaystack, setShowPaystack] = useState(false);
-  const [showPayPal, setShowPayPal] = useState(false);
+
   const [orderData, setOrderData] = useState<any>(null);
   const [orderNote, setOrderNote] = useState('');
   const defaultAddress = (profile?.location || '').trim(); // or profile?.delivery_address if you have that
@@ -141,7 +141,7 @@ const handleChangeAddress = () => {
 
   
 
-  const handleOrder = async (paymentMethod: 'wallet' | 'card' | 'paypal') => {
+  const handleOrder = async (paymentMethod: 'wallet' | 'card') => {
     if (!deliveryAddress.trim() || !deliveryState.trim() || !deliveryCountry.trim()) {
       Alert.alert(
         'Delivery Address Required',
@@ -221,8 +221,6 @@ description: orderNote.trim() || null,
 
         if (paymentMethod === 'card' && userCurrency === 'NGN') {
           setShowPaystack(true);
-        } else if (paymentMethod === 'paypal' || userCurrency !== 'NGN') {
-          setShowPayPal(true);
         }
       }
     } catch (error) {
@@ -232,6 +230,8 @@ description: orderNote.trim() || null,
       setLoading(false);
     }
   };
+
+  
 
   const processWalletPayment = async (orderTotals: any, discountAmount: number) => {
     try {
@@ -347,16 +347,6 @@ notes: orderNote.trim() || null,
     Alert.alert('Payment Cancelled', 'Your payment was cancelled');
   };
 
-  const handlePayPalSuccess = async (response: any) => {
-    setShowPayPal(false);
-    await completeOnlinePayment(response.reference, 'paypal');
-  };
-
-  const handlePayPalCancel = () => {
-    setShowPayPal(false);
-    setLoading(false);
-    Alert.alert('Payment Cancelled', 'Your payment was cancelled');
-  };
 
   const completeOnlinePayment = async (reference: string, provider: string) => {
     try {
@@ -666,17 +656,7 @@ const orderTotals = hasDeliveryAddress()
               </Pressable>
             )}
 
-            {/* PayPal Payment (for international currencies) */}
-            {userCurrency !== 'NGN' && (
-              <Pressable
-                style={[styles.paymentButton, styles.paypalButton]}
-                onPress={() => handleOrder('paypal')}
-                disabled={loading}
-              >
-                <CreditCard size={20} color="#FFFFFF" />
-                <Text style={styles.paymentButtonText}>Pay with PayPal</Text>
-              </Pressable>
-            )}
+      
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -736,34 +716,7 @@ const orderTotals = hasDeliveryAddress()
         </SafeAreaView>
       </Modal>
 
-      {/* PayPal Payment Modal */}
-      <Modal
-        visible={showPayPal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handlePayPalCancel}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Complete Payment</Text>
-            <Pressable style={styles.closeButton} onPress={handlePayPalCancel}>
-              <X size={24} color="#1F2937" />
-            </Pressable>
-          </View>
-          
-          {showPayPal && orderData && user && (
-            <PayPalPayment
-              email={user.email || ''}
-              amount={orderData.original_amount}
-              currency={orderData.currency}
-              customerName={user.user_metadata?.full_name || 'Customer'}
-              description={`Dritchwear Order - ${getTotalItems()} items`}
-              onSuccess={handlePayPalSuccess}
-              onCancel={handlePayPalCancel}
-            />
-          )}
-        </SafeAreaView>
-      </Modal>
+  
     </>
   );
 }
@@ -1002,9 +955,6 @@ const styles = StyleSheet.create({
   },
   paystackButton: {
     backgroundColor: '#00C851',
-  },
-  paypalButton: {
-    backgroundColor: '#0070BA',
   },
   paymentButtonText: {
     fontSize: 16,

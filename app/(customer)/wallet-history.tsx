@@ -97,8 +97,6 @@ export default function WalletHistoryScreen() {
     switch (provider) {
       case 'paystack':
         return '🇳🇬';
-      case 'paypal':
-        return '🌍';
       case 'wallet':
         return '👛';
       default:
@@ -110,8 +108,6 @@ export default function WalletHistoryScreen() {
     switch (provider) {
       case 'paystack':
         return 'Paystack';
-      case 'paypal':
-        return 'PayPal';
       case 'wallet':
         return 'Wallet';
       default:

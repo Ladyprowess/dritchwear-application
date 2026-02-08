@@ -194,11 +194,11 @@ export interface Database {
           discount_amount?: number
         }
       }
-      paypal_transactions: {
+      _transactions: {
         Row: {
           id: string
           user_id?: string
-          paypal_order_id: string
+          _order_id: string
           amount: number
           currency: string
           status: string
@@ -210,7 +210,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id?: string
-          paypal_order_id: string
+          _order_id: string
           amount: number
           currency: string
           status: string
@@ -222,7 +222,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          paypal_order_id?: string
+          _order_id?: string
           amount?: number
           currency?: string
           status?: string
