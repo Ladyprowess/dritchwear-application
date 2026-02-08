@@ -23,14 +23,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   androidStatusBar: {
     barStyle: 'dark-content',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
     translucent: false,
   },
   
   androidNavigationBar: {
     visible: 'visible',
     barStyle: 'dark-content',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
   },
   
 
