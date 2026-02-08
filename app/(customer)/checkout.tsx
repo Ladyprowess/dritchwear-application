@@ -644,6 +644,22 @@ const orderTotals = hasDeliveryAddress()
               </Text>
             </Pressable>
 
+            {/* ✅ NEW: show message + action for non-NGN users */}
+            {userCurrency !== 'NGN' && (
+              <View style={styles.ngnOnlyNoteWrap}>
+                <Text style={styles.ngnOnlyNoteText}>
+                  Card payments are available in Naira (NGN) only. Please fund your wallet in NGN, then pay with wallet.
+                </Text>
+
+                <Pressable
+                  style={styles.fundWalletLink}
+                  onPress={() => router.push('/(customer)/fund-wallet')}
+                >
+                  <Text style={styles.fundWalletLinkText}>Go to Fund Wallet</Text>
+                </Pressable>
+              </View>
+            )}
+
             {/* Card Payment (Paystack for NGN) */}
             {userCurrency === 'NGN' && (
               <Pressable
@@ -961,6 +977,35 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
+
+  // ✅ NEW styles (only for the NGN-only notice)
+  ngnOnlyNoteWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  ngnOnlyNoteText: {
+    fontSize: 13,
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+    marginBottom: 10,
+  },
+  fundWalletLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#5A2D82',
+  },
+  fundWalletLinkText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+
   modalContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',

@@ -7,7 +7,6 @@ import { Package, Filter, Search, MoreHorizontal, CheckCircle, XCircle, X, Star 
 import OrderDetailsModal from '@/components/OrderDetailsModal';
 import PaystackPayment from '@/components/PaystackPayment';
 import { formatCurrency, convertFromNGN } from '@/lib/currency';
-import Constants from 'expo-constants';
 
 interface Order {
   id: string;
@@ -21,8 +20,8 @@ interface Order {
   payment_method?: string;
   payment_status?: string;
   promo_code?: string | null;
-discount_amount?: number | null;
-notes?: string | null;
+  discount_amount?: number | null;
+  notes?: string | null;
   order_status?: string;
   delivery_address?: string;
   created_at: string;
@@ -60,34 +59,33 @@ export default function CustomerOrdersScreen() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [processingInvoice, setProcessingInvoice] = useState<string | null>(null);
   const [showPaystack, setShowPaystack] = useState(false);
-  const [showPayPal, setShowPayPal] = useState(false);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!user?.id) return;
-  
+
     try {
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-  
+
       if (ordersError) throw ordersError;
-  
+
       const { data: customData, error: customError } = await supabase
         .from('custom_requests')
         .select('*, invoices(*)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-  
+
       if (customError) throw customError;
-  
+
       // ✅ IMPORTANT: update state (you were not doing this)
       setOrders(ordersData || []);
       setCustomRequests(customData || []);
-  
+
       const allItems = [...(ordersData || []), ...(customData || [])];
       filterOrders(allItems, selectedStatus);
     } catch (error) {
@@ -96,7 +94,6 @@ export default function CustomerOrdersScreen() {
       setLoading(false);
     }
   }, [user?.id, selectedStatus]);
-  
 
   const filterOrders = (ordersList: Order[], filter: string) => {
     let filtered = [...ordersList];
@@ -126,14 +123,11 @@ export default function CustomerOrdersScreen() {
     fetchOrders();
   }, [fetchOrders]);
 
-  
-  
-
   useEffect(() => {
     if (!user?.id) return;
-  
+
     let timeout: any;
-  
+
     const channel = supabase
       .channel(`customer-orders-${user.id}`)
       .on(
@@ -162,16 +156,12 @@ export default function CustomerOrdersScreen() {
         }
       )
       .subscribe((status) => console.log('📡 realtime status:', status));
-  
+
     return () => {
       clearTimeout(timeout);
       supabase.removeChannel(channel);
     };
   }, [user?.id, fetchOrders]);
-  
-  
-
-  
 
   useEffect(() => {
     const allItems = [...orders, ...customRequests];
@@ -184,13 +174,13 @@ export default function CustomerOrdersScreen() {
     if (invoice.original_amount && invoice.currency) {
       return formatCurrency(invoice.original_amount, invoice.currency);
     }
-    
+
     // Fallback to the stored amount (which is in NGN) and convert to user's preferred currency
     if (profile?.preferred_currency && profile.preferred_currency !== 'NGN') {
       const convertedAmount = convertFromNGN(invoice.amount, profile.preferred_currency);
       return formatCurrency(convertedAmount, profile.preferred_currency);
     }
-    
+
     // Default to NGN
     return formatCurrency(invoice.amount, 'NGN');
   };
@@ -198,11 +188,11 @@ export default function CustomerOrdersScreen() {
   // Updated formatCurrency function to use user's preferred currency for regular orders
   const formatCurrencyInUserPreference = (amount: number, currencyCode?: string) => {
     const displayCurrency = currencyCode || profile?.preferred_currency || 'NGN';
-    
+
     if (displayCurrency === 'NGN') {
       return formatCurrency(amount, 'NGN');
     }
-    
+
     const convertedAmount = convertFromNGN(amount, displayCurrency);
     return formatCurrency(convertedAmount, displayCurrency);
   };
@@ -240,7 +230,7 @@ export default function CustomerOrdersScreen() {
 
   const handleAcceptInvoice = async (invoice: Invoice, customRequest: Order) => {
     setProcessingInvoice(invoice.id);
-    
+
     try {
       // Update invoice status to accepted
       const { error: invoiceError } = await supabase
@@ -249,7 +239,6 @@ export default function CustomerOrdersScreen() {
         .eq('id', invoice.id);
 
       if (invoiceError) throw invoiceError;
-      
 
       // Update custom request status to accepted
       const { error: requestError } = await supabase
@@ -265,9 +254,8 @@ export default function CustomerOrdersScreen() {
         p_message: `Customer has accepted invoice for "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)}`,
         p_type: 'custom',
       });
-      
+
       if (notifyError) console.warn('notify_admins failed:', notifyError);
-      
 
       // Refresh orders to show updated status
       await fetchOrders();
@@ -281,7 +269,7 @@ export default function CustomerOrdersScreen() {
 
   const handleRejectInvoice = async (invoice: Invoice, customRequest: Order) => {
     setProcessingInvoice(invoice.id);
-    
+
     try {
       // Update invoice status to rejected
       const { error: invoiceError } = await supabase
@@ -305,11 +293,10 @@ export default function CustomerOrdersScreen() {
         p_message: `Customer has rejected invoice for "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)}`,
         p_type: 'custom',
       });
-      
+
       if (notifyError) {
         console.warn('notify_admins failed:', notifyError);
       }
-      
 
       // Refresh orders to show updated status
       await fetchOrders();
@@ -330,9 +317,13 @@ export default function CustomerOrdersScreen() {
     // Get the correct amount to display in the alert
     const displayAmount = formatInvoiceAmount(invoice);
 
+    const isNaira = (invoice.currency || 'NGN') === 'NGN';
+
     Alert.alert(
       'Choose Payment Method',
-      `Pay ${displayAmount} for your custom order`,
+      isNaira
+        ? `Pay ${displayAmount} for your custom order`
+        : `International payments are unavailable right now.\n\nPlease fund your wallet in NGN and pay with Wallet.\n\nPay ${displayAmount} for your custom order`,
       [
         {
           text: 'Cancel',
@@ -342,10 +333,14 @@ export default function CustomerOrdersScreen() {
           text: `Wallet (${formatCurrency(convertFromNGN(profile.wallet_balance, profile.preferred_currency || 'NGN'), profile.preferred_currency || 'NGN')})`,
           onPress: () => handleWalletPayment(invoice, customRequest)
         },
-        {
-          text: invoice.currency === 'NGN' ? 'Card/Bank Transfer' : 'PayPal',
-          onPress: () => handleOnlinePayment(invoice, customRequest)
-        }
+        ...(isNaira
+          ? [
+              {
+                text: 'Card/Bank Transfer',
+                onPress: () => handleOnlinePayment(invoice, customRequest)
+              }
+            ]
+          : [])
       ]
     );
   };
@@ -370,7 +365,7 @@ export default function CustomerOrdersScreen() {
     try {
       // CRITICAL FIX: Only deduct from wallet for wallet payments
       console.log('Processing wallet payment for custom order - deducting from wallet');
-      
+
       // Deduct from wallet
       const { error: walletError } = await supabase
         .from('profiles')
@@ -407,7 +402,7 @@ export default function CustomerOrdersScreen() {
 
   const handleOnlinePayment = (invoice: Invoice, customRequest: Order) => {
     const isNaira = (invoice.currency || 'NGN') === 'NGN';
-    
+
     if (isNaira) {
       if (!process.env.EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY) {
         Alert.alert(
@@ -417,27 +412,28 @@ export default function CustomerOrdersScreen() {
         );
         return;
       }
-      
+
       setPaymentInvoice(invoice);
       setPaymentOrder(customRequest);
       setShowPaystack(true);
     } else {
-      
-      setPaymentInvoice(invoice);
-      setPaymentOrder(customRequest);
-      setShowPayPal(true);
+      Alert.alert(
+        'International Payments Unavailable',
+        'Please fund your wallet in NGN and pay with Wallet.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handlePaystackSuccess = async (response: any) => {
     setShowPaystack(false);
-    
+
     if (!paymentInvoice || !paymentOrder) return;
 
     try {
       // CRITICAL FIX: For Paystack payments, DO NOT deduct from wallet
       console.log('Processing Paystack payment for custom order - NO wallet deduction');
-      
+
       // Create transaction record ONLY - DO NOT touch wallet
       const { error: transactionError } = await supabase
         .from('transactions')
@@ -471,49 +467,9 @@ export default function CustomerOrdersScreen() {
     setPaymentOrder(null);
     Alert.alert('Payment Cancelled', 'Your payment was cancelled');
   };
-  
-  const handlePayPalSuccess = async (response: any) => {
-    setShowPayPal(false);
-    
-    if (!paymentInvoice || !paymentOrder) return;
-
-    try {
-      // For PayPal payments, DO NOT deduct from wallet
-      console.log('Processing PayPal payment for custom order - NO wallet deduction');
-      
-      // Create transaction record ONLY - DO NOT touch wallet
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user!.id,
-          type: 'debit',
-          amount: paymentInvoice.amount,
-          description: `Payment for custom order: ${paymentOrder.title}`,
-          reference: response.reference || response.transactionId,
-          status: 'completed',
-          currency: paymentInvoice.currency || 'USD',
-          original_amount: paymentInvoice.original_amount,
-        });
-
-      if (transactionError) throw transactionError;
-    } catch (error) {
-      console.error('Error processing PayPal payment:', error);
-      Alert.alert('Error', 'Payment was successful but failed to update order. Please contact support.');
-    } finally {
-      setPaymentInvoice(null);
-      setPaymentOrder(null);
-    }
-  };
 
   const canReviewOrder = (order: Order) => {
     return !isCustomRequest(order) && order.order_status === 'delivered';
-  };
-
-  const handlePayPalCancel = () => {
-    setShowPayPal(false);
-    setPaymentInvoice(null);
-    setPaymentOrder(null);
-    Alert.alert('Payment Cancelled', 'Your payment was cancelled');
   };
 
   const completePayment = async (invoice: Invoice, customRequest: Order, paymentMethod: string) => {
@@ -523,40 +479,39 @@ export default function CustomerOrdersScreen() {
         .from('invoices')
         .update({ status: 'paid' })
         .eq('id', invoice.id);
-  
+
       if (invoiceError) throw invoiceError;
-  
+
       // UPDATED: Change custom request status to 'payment_made' instead of 'completed'
       const { error: requestError } = await supabase
         .from('custom_requests')
         .update({ status: 'payment_made' })
         .eq('id', customRequest.id);
-  
+
       if (requestError) throw requestError;
-  
+
       // Send notification to admin
       const { error: notifyError } = await supabase.rpc('notify_admins', {
         p_title: 'Payment Received',
         p_message: `Payment received for custom order "${customRequest.title}" - Amount: ${formatInvoiceAmount(invoice)} via ${paymentMethod}`,
         p_type: 'order',
       });
-      
+
       if (notifyError) {
         console.warn('notify_admins failed:', notifyError);
       }
-      
-  
+
       // CRITICAL: Only refresh profile for wallet payments
       if (paymentMethod === 'wallet') {
         await refreshProfile();
       }
-  
+
       Alert.alert(
         'Payment Successful',
         'Your payment has been processed successfully. Your custom order is now in production!',
         [{ text: 'OK' }]
       );
-  
+
       // Refresh orders to show updated status
       await fetchOrders();
     } catch (error) {
@@ -580,13 +535,13 @@ export default function CustomerOrdersScreen() {
     const status = isCustom ? item.status : item.order_status;
     const statusColor = getStatusColor(status || '');
     const orderNumber = generateOrderNumber(item.id, isCustom);
-    
+
     // Get the appropriate currency for this order
     const orderCurrency = item.currency || profile?.preferred_currency || 'NGN';
 
     return (
-      <Pressable 
-        key={item.id} 
+      <Pressable
+        key={item.id}
         style={styles.orderCard}
         onPress={() => handleOrderPress(item)}
       >
@@ -602,17 +557,17 @@ export default function CustomerOrdersScreen() {
             </Text>
             <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
             {!isCustom && item.notes ? (
-  <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }} numberOfLines={1}>
-    Note: {item.notes}
-  </Text>
-) : null}
+              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }} numberOfLines={1}>
+                Note: {item.notes}
+              </Text>
+            ) : null}
 
           </View>
-          
+
           <View style={styles.orderRight}>
             <Text style={styles.orderAmount}>
-              {isCustom 
-                ? item.budget_range 
+              {isCustom
+                ? item.budget_range
                 : formatCurrencyInUserPreference(item.total, orderCurrency)}
             </Text>
             <View
@@ -650,7 +605,7 @@ export default function CustomerOrdersScreen() {
                   </Text>
                 </View>
                 <Text style={styles.invoiceDescription}>{invoice.description}</Text>
-                
+
                 {/* Show Accept/Reject buttons only for 'sent' status */}
                 {invoice.status === 'sent' && (
                   <View style={styles.invoiceButtons}>
@@ -675,13 +630,13 @@ export default function CustomerOrdersScreen() {
                       </Text>
 
                       {!isCustom && item.order_status === 'delivered' && (
-          <View style={styles.reviewSection}>
-            <View style={styles.reviewPrompt}>
-              <Star size={14} color="#F59E0B" />
-              <Text style={styles.reviewPromptText}>Can review</Text>
-            </View>
-          </View>
-        )}
+                        <View style={styles.reviewSection}>
+                          <View style={styles.reviewPrompt}>
+                            <Star size={14} color="#F59E0B" />
+                            <Text style={styles.reviewPromptText}>Can review</Text>
+                          </View>
+                        </View>
+                      )}
                     </Pressable>
                   </View>
                 )}
@@ -714,8 +669,8 @@ export default function CustomerOrdersScreen() {
       </View>
 
       {/* Status Filter */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filtersContainer}
         contentContainerStyle={styles.filtersContent}
@@ -761,7 +716,7 @@ export default function CustomerOrdersScreen() {
             <Package size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No Orders Found</Text>
             <Text style={styles.emptySubtitle}>
-              {selectedStatus !== 'All' 
+              {selectedStatus !== 'All'
                 ? `No ${selectedStatus.toLowerCase()} orders found`
                 : 'You haven\'t placed any orders yet'
               }
@@ -795,7 +750,7 @@ export default function CustomerOrdersScreen() {
               <XCircle size={24} color="#1F2937" />
             </Pressable>
           </View>
-          
+
           {showPaystack && paymentInvoice && user && (
             <PaystackPayment
               email={user.email || ''}
@@ -804,35 +759,6 @@ export default function CustomerOrdersScreen() {
               customerName={user.user_metadata?.full_name || 'Customer'}
               onSuccess={handlePaystackSuccess}
               onCancel={handlePaystackCancel}
-            />
-          )}
-        </SafeAreaView>
-      </Modal>
-      
-      {/* PayPal Payment Modal */}
-      <Modal
-        visible={showPayPal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handlePayPalCancel}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Complete Payment</Text>
-            <Pressable style={styles.closeButton} onPress={handlePayPalCancel}>
-              <XCircle size={24} color="#1F2937" />
-            </Pressable>
-          </View>
-          
-          {showPayPal && paymentInvoice && paymentOrder && user && (
-            <PayPalPayment
-              email={user.email || ''}
-              amount={paymentInvoice.original_amount || paymentInvoice.amount}
-              currency={paymentInvoice.currency || 'USD'}
-              customerName={user.user_metadata?.full_name || 'Customer'}
-              description={`Payment for custom order: ${paymentOrder.title}`}
-              onSuccess={handlePayPalSuccess}
-              onCancel={handlePayPalCancel}
             />
           )}
         </SafeAreaView>
@@ -859,14 +785,14 @@ const styles = StyleSheet.create({
     maxHeight: 48,
     marginBottom: 16,
   },
-  
+
   filtersContent: {
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8, // or use marginRight if you're not using gap
   },
-  
+
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -879,8 +805,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8, // fallback if you're not using gap
   },
-  
-    
+
   filterChipActive: {
     backgroundColor: '#5A2D82',
     borderColor: '#5A2D82',
@@ -1133,4 +1058,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-})
+});
