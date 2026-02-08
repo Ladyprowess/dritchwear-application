@@ -5,7 +5,6 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View, Text, StyleSheet, ActivityIndicator, InteractionManager } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
-import AnimatedSplash from "@/components/AnimatedSplash";
 
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -29,16 +28,14 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 // ✅ keep splash until we say so
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
-
 const BRAND = {
   purple: '#5A2D82', // Dritchwear brand purple
   yellow: '#FDB813', // Dritchwear brand yellow
   softBg: '#F9FAFB',
 };
-const BOOT_TIMEOUT_MS = 8000;
 
 // ✅ time before we switch from Loading... to Timeout message
-
+const BOOT_TIMEOUT_MS = 8000; // adjust (e.g. 6000, 8000, 12000)
 
 function AuthBootOverlay({ mode }: { mode: 'loading' | 'timeout' }) {
   return (
@@ -157,11 +154,9 @@ function RootLayoutContent() {
   const lastUserIdRef = useRef<string | null>(null);
   const splashHiddenRef = useRef(false);
 
-
   // ✅ timeout state (no "error" UI anymore)
   const [showTimeout, setShowTimeout] = useState(false);
   const timeoutLockedRef = useRef(false);
-  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
 
   const bootStartRef = useRef<number>(Date.now());
   const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,12 +178,6 @@ function RootLayoutContent() {
     hideSplashSafely();
     setShowTimeout(true);
   };
-
-  useEffect(() => {
-    requestAnimationFrame(() => hideSplashSafely());
-  }, []);
-
-
 
   // ✅ reset routing guard when user changes
   useEffect(() => {
@@ -302,10 +291,11 @@ function RootLayoutContent() {
       </Stack>
 
       {/* ✅ Overlay boot screen / timeout */}
-
-      {showAnimatedSplash && (
-  <AnimatedSplash onDone={() => setShowAnimatedSplash(false)} />
-)}
+      {showOverlay ? (
+        <View style={{ ...StyleSheet.absoluteFillObject, pointerEvents: showTimeout ? 'auto' : 'none' }}>
+          <AuthBootOverlay mode={showTimeout ? 'timeout' : 'loading'} />
+        </View>
+      ) : null}
 
       <StatusBar style="dark" translucent={false} hidden={false} />
     </View>
