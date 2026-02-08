@@ -1,4 +1,6 @@
-export default ({ config }) => ({
+import { ExpoConfig, ConfigContext } from 'expo/config';
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
 
   name: 'Dritchwear',
@@ -7,14 +9,29 @@ export default ({ config }) => ({
   orientation: 'default',
 
   icon: './assets/images/icon.png',
+
   scheme: 'dritchwear',
+
   userInterfaceStyle: 'light',
 
   splash: {
     image: './assets/images/splash.png',
-    resizeMode: 'cover',
+    resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
+
+  androidStatusBar: {
+    barStyle: 'dark-content',
+    backgroundColor: '#F9FAFB',
+    translucent: false,
+  },
+  
+  androidNavigationBar: {
+    visible: 'visible',
+    barStyle: 'dark-content',
+    backgroundColor: '#F9FAFB',
+  },
+  
 
   assetBundlePatterns: ['**/*'],
 
@@ -27,27 +44,12 @@ export default ({ config }) => ({
     package: 'com.dritchwear.app',
     googleServicesFile: './google-services.json',
     softwareKeyboardLayoutMode: 'resize',
-    versionCode: 102,
-
+    versionCode: 105,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',
     },
-
     permissions: ['NOTIFICATIONS', 'READ_MEDIA_IMAGES'],
-
-    // ✅ move these inside android
-    statusBar: {
-      barStyle: 'dark-content',
-      backgroundColor: '#FFFFFF',
-      translucent: false,
-    },
-
-    navigationBar: {
-      visible: 'visible',
-      barStyle: 'dark-content',
-      backgroundColor: '#FFFFFF',
-    },
   },
 
   web: {
@@ -55,8 +57,11 @@ export default ({ config }) => ({
   },
 
   plugins: [
+    // ✅ Date picker plugin (required)
     '@react-native-community/datetimepicker',
     'expo-secure-store',
+
+    // ✅ Existing build properties (kept exactly as-is)
     [
       'expo-build-properties',
       {
@@ -69,9 +74,4 @@ export default ({ config }) => ({
       },
     ],
   ],
-
-  extra: {
-    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-  },
 });
