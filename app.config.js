@@ -1,18 +1,13 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
-
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }) => ({
   ...config,
 
   name: 'Dritchwear',
   slug: 'dritchwear',
   version: '1.0.0',
-  runtimeVersion: "1.0.0",
   orientation: 'default',
 
   icon: './assets/images/icon.png',
-
   scheme: 'dritchwear',
-
   userInterfaceStyle: 'light',
 
   splash: {
@@ -21,23 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: '#ffffff',
   },
 
-  androidStatusBar: {
-    barStyle: 'dark-content',
-    backgroundColor: '#FFFFFF',
-    translucent: false,
-  },
-  
-  androidNavigationBar: {
-    visible: 'visible',
-    barStyle: 'dark-content',
-    backgroundColor: '#FFFFFF',
-  },
-  
-
   assetBundlePatterns: ['**/*'],
-  updates: {
-    enabled: false,
-  },
 
   ios: {
     supportsTablet: true,
@@ -49,11 +28,26 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     googleServicesFile: './google-services.json',
     softwareKeyboardLayoutMode: 'resize',
     versionCode: 102,
+
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#FFFFFF',
     },
+
     permissions: ['NOTIFICATIONS', 'READ_MEDIA_IMAGES'],
+
+    // ✅ move these inside android
+    statusBar: {
+      barStyle: 'dark-content',
+      backgroundColor: '#FFFFFF',
+      translucent: false,
+    },
+
+    navigationBar: {
+      visible: 'visible',
+      barStyle: 'dark-content',
+      backgroundColor: '#FFFFFF',
+    },
   },
 
   web: {
